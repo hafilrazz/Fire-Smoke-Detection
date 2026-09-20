@@ -122,6 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
     thresholdSlider.addEventListener("input", (e) => {
       detectionThreshold = parseInt(e.target.value, 10);
       thresholdValDisplay.textContent = `${detectionThreshold}%`;
+      playTone(850, 920, 0.02, "triangle", 0.02);
     });
   }
 
@@ -162,12 +163,44 @@ document.addEventListener("DOMContentLoaded", () => {
         activePanel.classList.add("active");
       }
 
+      playTone(1400, 1900, 0.035, "sine", 0.03);
+
       // If switching away from webcam tab, disengage camera stream
       if (targetPanelId !== "webcamTabPanel" && isCctvLive) {
         stopCctvStream();
       }
     });
   });
+
+  // ========================================================================
+  // 5b. DEFCON Readiness & Atmospheric Telemetry
+  // ========================================================================
+  function updateGlobalDefconState(pred, confidence = 0, latency = null) {
+    const defconBadge = document.getElementById("hudDefconBadge");
+
+    if (pred === "Fire") {
+      document.body.className = "threat-state-fire";
+      if (defconBadge) {
+        defconBadge.textContent = "DEFCON 1 // CRITICAL FIRE";
+        defconBadge.style.color = "var(--hazard-fire)";
+        defconBadge.style.textShadow = "0 0 10px var(--hazard-fire-glow)";
+      }
+    } else if (pred === "Smoke") {
+      document.body.className = "threat-state-smoke";
+      if (defconBadge) {
+        defconBadge.textContent = "DEFCON 2 // SMOKE ADVISORY";
+        defconBadge.style.color = "var(--hazard-smoke)";
+        defconBadge.style.textShadow = "0 0 10px var(--hazard-smoke-glow)";
+      }
+    } else {
+      document.body.className = "threat-state-safe";
+      if (defconBadge) {
+        defconBadge.textContent = "DEFCON 4 // SECURE";
+        defconBadge.style.color = "var(--hazard-safe)";
+        defconBadge.style.textShadow = "0 0 8px var(--hazard-safe-glow)";
+      }
+    }
+  }
 
   // ========================================================================
   // 6. Telemetry & Health Probe
@@ -406,6 +439,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const pred = data.prediction || "Neutral";
     const confidence = data.confidence || 0.0;
     const isHazard = data.is_hazard;
+
+    // Sync DEFCON state, atmospheric lighting, and tactical diagnostic canvases
+    updateGlobalDefconState(pred, confidence, data.latency_ms);
 
     // Trigger siren if confidence crosses user-configured threshold
     if (isHazard && confidence >= detectionThreshold) {
@@ -679,6 +715,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let isFrameInFlight = false;
   let fpsSampleCount = 0;
   let fpsTimerStart = Date.now();
+  let latestCctvData = null;
 
   // Enumerate Connected Camera Devices
   async function populateCameraDevices() {
@@ -758,6 +795,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     isCctvLive = false;
+    latestCctvData = null;
     btnStartCamera.style.display = "inline-flex";
     btnStopCamera.style.display = "none";
     if (btnCaptureSnapshot) btnCaptureSnapshot.disabled = true;
@@ -768,6 +806,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (cctvThreatPct) cctvThreatPct.textContent = "--%";
     if (hudActiveThreatTag) hudActiveThreatTag.textContent = "STANDBY";
     if (hudFpsCounter) hudFpsCounter.textContent = "INFERENCE: 0.0 FPS";
+    updateGlobalDefconState("Neutral", 0, null);
   }
 
   async function pollWebcamFrame() {
@@ -788,6 +827,7 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({ frame: frameBase64 }),
       });
       const data = await res.json();
+      latestCctvData = data;
       renderCctvTelemetry(data);
 
       fpsSampleCount++;
@@ -812,6 +852,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const confidence = data.confidence || 0.0;
     const isHazard = data.is_hazard;
 
+    // Sync DEFCON state, atmospheric lighting, and tactical diagnostic canvases
+    updateGlobalDefconState(pred, confidence, data.latency_ms);
+
     cctvAssessmentBanner.className = "assessment-banner";
     if (pred === "Fire") {
       cctvAssessmentBanner.classList.add("threat-fire");
@@ -822,24 +865,36 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (cctvThreatHeading) {
-      cctvThreatHeading.textContent = `${pred.toUpperCase()} CONFIRMED`;
+      cctvThreatHeading.textContent =
+        pred === "Fire"
+          ? "CRITICAL HAZARD - FIRE DETECTED"
+          : pred === "Smoke"
+          ? "HIGH ADVISORY - SMOKE DETECTED"
+          : "STATUS SECURE - PERIMETER CLEAR";
     }
+
     if (cctvThreatSub) {
       cctvThreatSub.textContent = isHazard
         ? `Optical trigger: ${data.hazard_level || "ALERT"} state detected by neural classifier.`
         : "Perimeter clear. No thermal combustion signatures detected.";
     }
+
     if (cctvThreatPct) {
       cctvThreatPct.textContent = `${confidence.toFixed(1)}%`;
-      cctvThreatPct.style.color = data.color_hex || "#fff";
+      cctvThreatPct.style.color = data.color_hex || (isHazard ? "#ef4444" : "#10b981");
     }
 
     if (hudActiveThreatTag) {
-      hudActiveThreatTag.textContent = `THREAT: ${pred.toUpperCase()} (${confidence.toFixed(0)}%)`;
-      hudActiveThreatTag.style.color = data.color_hex || "#fff";
+      if (isHazard) {
+        hudActiveThreatTag.textContent = `THREAT: ${pred.toUpperCase()} (${confidence.toFixed(0)}%)`;
+        hudActiveThreatTag.style.color = data.color_hex || (pred === "Fire" ? "var(--hazard-fire)" : "var(--hazard-smoke)");
+      } else {
+        hudActiveThreatTag.textContent = "SECURE - CLEAR";
+        hudActiveThreatTag.style.color = "var(--hazard-safe)";
+      }
     }
 
-    // Trigger audible alarm if hazard reaches threshold
+    // Trigger audible alarm if verified hazard reaches sensitivity threshold
     if (isHazard && confidence >= detectionThreshold) {
       triggerHazardSiren(pred);
       logIncidentFeed(pred, confidence);
@@ -883,7 +938,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Snapshot Capture & Download
+  // Snapshot Capture & Download with Bounding Box Overlay
   if (btnCaptureSnapshot && webcamVideo) {
     btnCaptureSnapshot.addEventListener("click", () => {
       if (!isCctvLive) return;
@@ -900,11 +955,12 @@ document.addEventListener("DOMContentLoaded", () => {
       snapCtx.setTransform(1, 0, 0, 1, 0, 0);
 
       // Overlay watermark stamp
-      snapCtx.fillStyle = "rgba(13, 18, 28, 0.8)";
-      snapCtx.fillRect(10, 10, 240, 36);
-      snapCtx.fillStyle = "#10b981";
-      snapCtx.font = "14px 'JetBrains Mono', monospace";
-      snapCtx.fillText("FIRE & SMOKE SNAPSHOT", 20, 33);
+      snapCtx.fillStyle = "rgba(13, 18, 28, 0.85)";
+      snapCtx.fillRect(10, 10, 260, 36);
+      snapCtx.fillStyle = latestCctvData?.is_hazard ? "#ef4444" : "#10b981";
+      snapCtx.font = "bold 13px 'JetBrains Mono', monospace";
+      const statusStamp = latestCctvData?.is_hazard ? `HAZARD: ${latestCctvData.prediction.toUpperCase()}` : "STATUS: SECURE";
+      snapCtx.fillText(`FIRE-SMOKE AI | ${statusStamp}`, 20, 33);
 
       const dataUrl = snapCanvas.toDataURL("image/png");
       const a = document.createElement("a");
