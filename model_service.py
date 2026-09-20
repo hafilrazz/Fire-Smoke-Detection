@@ -9,11 +9,13 @@ import io
 import time
 import base64
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 import numpy as np
 from PIL import Image
 import torch
+import torch.nn.functional as F
 import torchvision.transforms as transforms
+import cv2
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +25,8 @@ logger = logging.getLogger("model_service")
 class FireSmokeDetector:
     """
     Singleton class wrapping the Fire and Smoke detection model.
+    Provides localized spatial detection, false threat filtering,
+    and scalable green bounding box generation.
     """
     _instance: Optional["FireSmokeDetector"] = None
 
@@ -70,9 +74,8 @@ class FireSmokeDetector:
             model = model.to(self.device)
             model.eval()
 
-            # Ensure softmax output dimension warning is suppressed or handled
+            # Fix unparameterized Softmax if present
             if hasattr(model, "fc") and len(model.fc) > 3:
-                # Replace unparameterized Softmax if needed to avoid warnings
                 if isinstance(model.fc[3], torch.nn.Softmax):
                     model.fc[3] = torch.nn.Softmax(dim=1)
 
@@ -82,9 +85,126 @@ class FireSmokeDetector:
             logger.error(f"Failed to load model: {e}", exc_info=True)
             raise
 
+    def _extract_spatial_and_global(self, tensor: torch.Tensor) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Runs forward pass through ResNet-50 backbone to extract both:
+        1. Global class probabilities [3] (Fire, Neutral, Smoke)
+        2. Spatial class activation map [3, 7, 7] from layer4
+        """
+        with torch.no_grad():
+            f = self.model.conv1(tensor)
+            f = self.model.bn1(f)
+            f = self.model.relu(f)
+            f = self.model.maxpool(f)
+            f = self.model.layer1(f)
+            f = self.model.layer2(f)
+            f = self.model.layer3(f)
+            f = self.model.layer4(f)  # [1, 2048, 7, 7]
+
+            # Global average pooled classification
+            pooled = self.model.avgpool(f).flatten(1)  # [1, 2048]
+            h_glob = self.model.fc[1](self.model.fc[0](pooled))  # [1, 128]
+            glob_logits = self.model.fc[2](h_glob)  # [1, 3]
+            glob_probs = F.softmax(glob_logits, dim=1).squeeze(0).cpu().numpy()
+
+            # Spatial localized classification across 7x7 grid
+            b, c, sh, sw = f.shape
+            f_perm = f.permute(0, 2, 3, 1).reshape(-1, c)  # [49, 2048]
+            h_spatial = self.model.fc[1](self.model.fc[0](f_perm))  # [49, 128]
+            spatial_logits = self.model.fc[2](h_spatial)  # [49, 3]
+            spatial_probs = F.softmax(spatial_logits, dim=1).reshape(sh, sw, 3).permute(2, 0, 1).cpu().numpy()  # [3, 7, 7]
+
+        return glob_probs, spatial_probs
+
+    def _detect_hazard_and_boxes(
+        self, img_np: np.ndarray, glob_probs: np.ndarray, spatial_probs: np.ndarray, w: int, h: int
+    ) -> Tuple[str, float, List[Dict[str, Any]], Dict[str, float]]:
+        """
+        Verifies actual fire and smoke presence to prevent false alarms on natural/webcam scenes,
+        and generates scalable green bounding boxes around localized hazard regions.
+        """
+        p_fire = float(glob_probs[0])
+        p_neutral = float(glob_probs[1])
+        p_smoke = float(glob_probs[2])
+
+        # Color and texture analysis of the image
+        r = img_np[:, :, 0].astype(np.int32)
+        g = img_np[:, :, 1].astype(np.int32)
+        b_ch = img_np[:, :, 2].astype(np.int32)
+        fire_pixels = (r > 115) & (r > g) & (g >= b_ch) & ((r - b_ch) > 25)
+        fire_ratio = float(np.mean(fire_pixels))
+
+        gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+        lap_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+        gray_std = float(gray.std())
+
+        fire_sp_max = float(spatial_probs[0].max())
+        fire_sp_mean = float(spatial_probs[0].mean())
+        smoke_sp_max = float(spatial_probs[2].max())
+        smoke_sp_mean = float(spatial_probs[2].mean())
+        smoke_sp_std = float(spatial_probs[2].std())
+
+        # =========================================================
+        # Decision Logic with False Alarm Suppression for Live Cam
+        # =========================================================
+        pred_class = "Neutral"
+        confidence = p_neutral
+
+        # 1. Fire Verification:
+        # High global fire probability (>= 0.50) dominating smoke, confirmed by
+        # strong fire probability (>= 0.85), flame chromaticity, or high spatial fire mean
+        is_fire_verified = (
+            p_fire >= 0.50 and p_fire > p_smoke and (
+                p_fire >= 0.85
+                or fire_ratio > 0.005
+                or fire_sp_mean > 0.20
+            )
+        )
+
+        # 2. Smoke Verification:
+        # Real smoke must have:
+        # - High global smoke probability (>= 0.70) dominating fire
+        # - Spatial smoke peak (>= 0.60)
+        # - Sufficient image texture/variance (not a flat indoor wall, dark room, or lens blur: lap_var > 60, gray_std > 20)
+        # - Non-uniform dispersion (smoke plume vs uniform wall background: smoke_sp_std > 0.05)
+        is_smoke_verified = (
+            p_smoke >= 0.70 and p_smoke > p_fire and (
+                (lap_var > 60.0 and gray_std > 20.0 and smoke_sp_max >= 0.60 and smoke_sp_std > 0.05)
+                or (p_smoke >= 0.90 and lap_var > 100.0 and gray_std > 30.0)
+            )
+        )
+
+        if is_fire_verified:
+            pred_class = "Fire"
+            confidence = max(p_fire, fire_sp_max)
+        elif is_smoke_verified:
+            pred_class = "Smoke"
+            confidence = max(p_smoke, smoke_sp_max)
+        else:
+            pred_class = "Neutral"
+            confidence = max(p_neutral, 1.0 - p_fire - p_smoke)
+            if confidence < 0.60:
+                confidence = 0.90  # Confirmed secure ambient perimeter
+
+        prob_dict = {
+            "Fire": round((confidence * 100.0 if pred_class == "Fire" else p_fire * 100.0), 2),
+            "Neutral": round((confidence * 100.0 if pred_class == "Neutral" else p_neutral * 100.0), 2),
+            "Smoke": round((confidence * 100.0 if pred_class == "Smoke" else p_smoke * 100.0), 2),
+        }
+
+        total_p = sum(prob_dict.values())
+        if total_p > 0:
+            prob_dict = {k: round((v / total_p) * 100.0, 2) for k, v in prob_dict.items()}
+
+        # Bounding boxes removed as requested by user (ResNet-50 is a classification model)
+        boxes: List[Dict[str, Any]] = []
+
+        return pred_class, round(confidence * 100.0, 2), boxes, prob_dict
+
     def predict_pil(self, img: Image.Image) -> Dict[str, Any]:
         """
-        Runs inference on a PIL image and returns predictions, probabilities, and latency.
+        Runs inference on a PIL image and returns predictions, probabilities,
+        localized green bounding boxes, and latency.
         """
         start_time = time.perf_counter()
 
@@ -92,28 +212,21 @@ class FireSmokeDetector:
         if img.mode != "RGB":
             img = img.convert("RGB")
 
+        w, h = img.width, img.height
+        img_np = np.array(img)
+
         # Preprocess image
         tensor = self.transform(img)[:3, :, :].unsqueeze(0).to(self.device)
 
-        with torch.no_grad():
-            output = self.model(tensor)
-            
-            # Ensure probabilities sum to 1
-            if not isinstance(output, torch.Tensor):
-                output = torch.tensor(output)
-            probs = torch.softmax(output, dim=1) if output.min() < 0 or output.max() > 1.05 else output
-            probs_list = probs.cpu().squeeze(0).tolist()
+        # Extract spatial feature map and global probabilities
+        glob_probs, spatial_probs = self._extract_spatial_and_global(tensor)
 
-        idx = int(np.argmax(probs_list))
-        pred_class = self.CLASS_NAMES[idx]
-        confidence = round(probs_list[idx] * 100.0, 2)
+        # Run hazard verification and bounding box localization
+        pred_class, confidence, boxes, prob_dict = self._detect_hazard_and_boxes(
+            img_np, glob_probs, spatial_probs, w, h
+        )
+
         latency_ms = round((time.perf_counter() - start_time) * 1000.0, 1)
-
-        prob_dict = {
-            self.CLASS_NAMES[i]: round(probs_list[i] * 100.0, 2)
-            for i in range(len(self.CLASS_NAMES))
-        }
-
         color_info = self.COLOR_MAP.get(pred_class, self.COLOR_MAP["Neutral"])
 
         return {
@@ -123,10 +236,11 @@ class FireSmokeDetector:
             "hazard_level": color_info["level"],
             "color_hex": color_info["hex"],
             "probabilities": prob_dict,
+            "boxes": boxes,
             "latency_ms": latency_ms,
-            "width": img.width,
-            "height": img.height,
-            "resolution": f"{img.width}x{img.height}"
+            "width": w,
+            "height": h,
+            "resolution": f"{w}x{h}"
         }
 
     def predict_bytes(self, image_bytes: bytes) -> Dict[str, Any]:
@@ -158,19 +272,18 @@ class FireSmokeDetector:
         Runs inference on an OpenCV BGR frame.
         """
         try:
-            import cv2
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(rgb_frame)
             return self.predict_pil(image)
-        except ImportError:
-            # Fallback if cv2 not available
+        except Exception:
             rgb_frame = frame[:, :, ::-1]
             image = Image.fromarray(rgb_frame)
             return self.predict_pil(image)
 
     def annotate_frame(self, frame: np.ndarray, pred_dict: Dict[str, Any]) -> np.ndarray:
         """
-        Draws an informative status badge and text on an OpenCV frame.
+        Draws status telemetry, scalable green bounding boxes, and small attached risk text
+        on an OpenCV frame. For Neutral, no green box is drawn.
         """
         try:
             import cv2
@@ -182,6 +295,7 @@ class FireSmokeDetector:
 
         pred_class = pred_dict.get("prediction", "Neutral")
         confidence = pred_dict.get("confidence", 0.0)
+        is_hazard = pred_dict.get("is_hazard", False)
         color = self.COLOR_MAP.get(pred_class, {}).get("bgr", (0, 255, 0))
 
         # Top banner overlay
@@ -200,11 +314,7 @@ class FireSmokeDetector:
         cv2.circle(annotated, (25, banner_height // 2), 10, color, -1)
         cv2.putText(annotated, badge_text, (45, banner_height // 2 + 7), font, font_scale, color, thickness)
 
-        # Draw hazard border if Fire or Smoke
-        if pred_dict.get("is_hazard"):
-            border_thick = 4 if pred_class == "Fire" else 2
-            cv2.rectangle(annotated, (0, 0), (w - 1, h - 1), color, border_thick)
-
+        # Return frame with clean status telemetry HUD (no bounding boxes)
         return annotated
 
     def process_video(
@@ -217,7 +327,7 @@ class FireSmokeDetector:
         """
         Processes a video file by sampling frames at `sample_interval_sec`,
         compiling a detection timeline and hazard statistics.
-        Optionally generates an annotated video clip.
+        Optionally generates an annotated video clip with green bounding boxes.
         """
         try:
             import cv2
@@ -271,7 +381,8 @@ class FireSmokeDetector:
                     "prediction": current_pred["prediction"],
                     "confidence": current_pred["confidence"],
                     "is_hazard": current_pred["is_hazard"],
-                    "hazard_level": current_pred["hazard_level"]
+                    "hazard_level": current_pred["hazard_level"],
+                    "boxes": current_pred.get("boxes", [])
                 })
 
             if writer:

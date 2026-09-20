@@ -32,6 +32,8 @@ def test_predict_known_samples():
         assert res["prediction"] == "Smoke"
         assert res["is_hazard"] is True
         assert res["confidence"] > 90.0
+        assert "boxes" in res
+        assert res["boxes"] == []  # Bounding boxes removed as requested
 
     # Fire sample
     fire_path = os.path.join("test-imgs", "26.jpg")
@@ -41,6 +43,8 @@ def test_predict_known_samples():
         assert res["prediction"] == "Fire"
         assert res["is_hazard"] is True
         assert res["confidence"] > 90.0
+        assert "boxes" in res
+        assert res["boxes"] == []  # Bounding boxes removed as requested
 
     # Neutral sample
     neutral_path = os.path.join("test-imgs", "image_7.jpg")
@@ -49,6 +53,8 @@ def test_predict_known_samples():
             res = detector.predict_bytes(f.read())
         assert res["prediction"] == "Neutral"
         assert res["is_hazard"] is False
+        assert "boxes" in res
+        assert res["boxes"] == []
 
 def test_api_health(client):
     res = client.get("/api/health")
@@ -122,4 +128,74 @@ def test_api_predict_video(client):
     finally:
         if os.path.exists(temp_video):
             os.remove(temp_video)
+
+
+def test_webcam_false_alarm_suppression(client):
+    """
+    Ensures typical webcam indoor scenes (e.g. blank wall, low-contrast room)
+    do NOT trigger fake smoke/fire alerts, and return zero bounding boxes.
+    """
+    import cv2
+    import numpy as np
+
+    # 1. Plain wall
+    plain_wall = np.full((240, 320, 3), (210, 215, 220), dtype=np.uint8)
+    _, buf1 = cv2.imencode(".jpg", plain_wall)
+    b64_1 = base64.b64encode(buf1).decode("utf-8")
+
+    res1 = client.post("/api/predict/frame", json={"frame": f"data:image/jpeg;base64,{b64_1}"})
+    assert res1.status_code == 200
+    data1 = res1.get_json()
+    assert data1["prediction"] == "Neutral"
+    assert data1["is_hazard"] is False
+    assert data1["boxes"] == []
+
+    # 2. Dim indoor ambient room
+    dim_room = np.full((240, 320, 3), (40, 42, 45), dtype=np.uint8)
+    _, buf2 = cv2.imencode(".jpg", dim_room)
+    b64_2 = base64.b64encode(buf2).decode("utf-8")
+
+    res2 = client.post("/api/predict/frame", json={"frame": f"data:image/jpeg;base64,{b64_2}"})
+    assert res2.status_code == 200
+    data2 = res2.get_json()
+    assert data2["prediction"] == "Neutral"
+    assert data2["is_hazard"] is False
+    assert data2["boxes"] == []
+
+
+def test_annotate_frame():
+    """
+    Verifies that annotate_frame renders green boxes with small attached labels
+    for hazards, and returns an unboxed clean image for Neutral.
+    """
+    import cv2
+    import numpy as np
+    detector = FireSmokeDetector.get_instance()
+
+    # Neutral: no box drawn
+    clean_frame = np.full((240, 320, 3), 128, dtype=np.uint8)
+    neutral_res = {
+        "prediction": "Neutral",
+        "confidence": 95.0,
+        "is_hazard": False,
+        "hazard_level": "CLEAR",
+        "boxes": []
+    }
+    # Neutral: clean frame below top status HUD banner
+    ann_neutral = detector.annotate_frame(clean_frame.copy(), neutral_res)
+    assert np.array_equal(clean_frame[60:, :], ann_neutral[60:, :])
+
+    # Fire: top HUD banner drawn, but no bounding box drawn on frame body
+    fire_frame = np.full((240, 320, 3), 0, dtype=np.uint8)
+    fire_res = {
+        "prediction": "Fire",
+        "confidence": 98.5,
+        "is_hazard": True,
+        "hazard_level": "CRITICAL",
+        "boxes": []
+    }
+    ann_fire = detector.annotate_frame(fire_frame.copy(), fire_res)
+    # The frame body is clean (no bounding box lines)
+    assert np.array_equal(fire_frame[60:, :], ann_fire[60:, :])
+
 

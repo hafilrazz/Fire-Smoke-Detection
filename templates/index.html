@@ -3,36 +3,44 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fire and Smoke | AI Surveillance Command Center</title>
+  <title>AEGIS-9 // Autonomous Hazard Surveillance & Neural Command Console</title>
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
 </head>
-<body>
+<body class="threat-state-safe">
 
   <!-- ========================================================================
-       Top Navigation & Command Bar
+       Top Mission Command Bridge
        ======================================================================== -->
-  <header class="cmd-header">
+  <!-- ========================================================================
+       Top Mission Command Bridge
+       ======================================================================== -->
+  <header class="cmd-header aegis-bridge">
     <div class="cmd-header-inner">
       <div class="brand-block">
         <div class="brand-icon-wrapper" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
           </svg>
         </div>
         <div class="brand-text">
-          <h1>Fire and Smoke <span class="tag">Detection AI</span></h1>
-          <p>Autonomous Fire & Smoke Hazard Detection System</p>
+          <h1>FIRE &amp; SMOKE <span class="tag">AI CONSOLE</span></h1>
+        </div>
+      </div>
+
+      <!-- Center HUD: DEFCON Alert Readiness -->
+      <div class="bridge-center-hud">
+        <div class="hud-coord-item">
+          <span class="hud-coord-label">DEFCON STATE:</span>
+          <span class="hud-defcon-val" id="hudDefconBadge">DEFCON 4 // SECURE</span>
         </div>
       </div>
 
       <div class="telemetry-group">
-        <div class="telemetry-pill status-live">
-          <span class="dot-blinking"></span>
-          <span>SYSTEM ACTIVE</span>
-        </div>
         <div class="telemetry-pill" id="liveClockPill">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
           <span id="liveClockDisplay">00:00:00 UTC</span>
@@ -52,44 +60,48 @@
        ======================================================================== -->
   <main class="app-container">
 
-    <!-- Quick Controls Sub-Bar -->
-    <div class="quick-controls-bar">
+    <!-- Status Bar -->
+    <div class="quick-controls-bar tactical-sub-strip">
       <div class="control-item">
-        <span>Alert Threshold:</span>
+        <span class="control-label">SENSITIVITY GATE:</span>
         <div class="slider-group">
           <input type="range" id="thresholdSlider" min="50" max="95" value="70" step="5" />
           <span class="threshold-val" id="thresholdValDisplay">70%</span>
         </div>
       </div>
+
       <div class="control-item">
-        <span>Active Incident Status:</span>
-        <span class="telemetry-pill" id="globalIncidentPill" style="color: var(--hazard-safe); border-color: rgba(16, 185, 129, 0.3);">
+        <span class="control-label">PERIMETER INCIDENT:</span>
+        <span class="telemetry-pill" id="globalIncidentPill" style="color: var(--hazard-safe); border-color: rgba(16, 185, 129, 0.4);">
           SECURE - NO THREATS
         </span>
       </div>
     </div>
 
-    <!-- Segmented Navigation Tabs -->
-    <nav class="nav-tab-strip" role="tablist">
-      <button class="nav-tab-item active" data-tab="imageTabPanel" role="tab">
+    <!-- Sensor Channel Selector Strip -->
+    <nav class="nav-tab-strip tactical-channel-bar" role="tablist">
+      <button class="nav-tab-item tactical-channel-btn active" data-tab="imageTabPanel" role="tab">
+        <span class="channel-code">CH-01</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-        <span>Image Analytics</span>
+        <span class="channel-title">IMAGE SCANNER</span>
       </button>
-      <button class="nav-tab-item" data-tab="videoTabPanel" role="tab">
+
+      <button class="nav-tab-item tactical-channel-btn" data-tab="videoTabPanel" role="tab">
+        <span class="channel-code">CH-02</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
-        <span>Video Feed Audit</span>
+        <span class="channel-title">VIDEO AUDIT</span>
       </button>
-      <button class="nav-tab-item" data-tab="webcamTabPanel" role="tab">
+
+      <button class="nav-tab-item tactical-channel-btn" data-tab="webcamTabPanel" role="tab">
+        <span class="channel-code">CH-03</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-        <span>Live CCTV Surveillance</span>
+        <span class="channel-title">LIVE PERIMETER</span>
       </button>
-      <button class="nav-tab-item" data-tab="apiTabPanel" role="tab">
+
+      <button class="nav-tab-item tactical-channel-btn" data-tab="apiTabPanel" role="tab">
+        <span class="channel-code">CH-04</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-        <span>API & Integrations</span>
-      </button>
-      <button class="nav-tab-item" data-tab="aboutTabPanel" role="tab">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
-        <span>Neural Architecture</span>
+        <span class="channel-title">REST API</span>
       </button>
     </nav>
 
@@ -100,27 +112,33 @@
       <div class="grid-2col">
 
         <!-- Left Column: Ingestion & Viewport -->
-        <div class="panel-card">
+        <div class="panel-card tactical-pod">
           <div class="panel-header">
             <div class="panel-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-              <span>Image Ingestion Viewport</span>
+              <span>Target Ingestion &amp; Viewport</span>
             </div>
-            <span class="panel-subtitle">Upload / Paste / Select Sample</span>
+            <span class="panel-subtitle">Upload / Clipboard / Quick Sample</span>
           </div>
 
           <!-- Dropzone -->
-          <div class="drop-container" id="imageDropzone">
+          <div class="drop-container tactical-dropzone" id="imageDropzone">
             <div class="drop-icon-box">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
             </div>
-            <div class="drop-primary-txt">Drop inspection image or click to browse</div>
+            <div class="drop-primary-txt">SELECT OR DROP AN IMAGE TO ANALYZE</div>
             <div class="drop-secondary-txt">Supports PNG, JPG, WEBP &bull; Paste from clipboard with <kbd>Ctrl+V</kbd></div>
             <input type="file" id="imageFileInput" class="file-input-hidden" accept="image/*" />
           </div>
 
           <!-- Viewport Stage with Toolbar -->
-          <div class="image-viewport" id="imageViewport">
+          <div class="image-viewport tactical-viewport" id="imageViewport">
+            <!-- Corner Brackets -->
+            <div class="corner-acc-tl"></div>
+            <div class="corner-acc-tr"></div>
+            <div class="corner-acc-bl"></div>
+            <div class="corner-acc-br"></div>
+
             <div class="viewport-toolbar" id="viewportToolbar" style="display: none;">
               <button class="tool-btn" id="btnZoomIn" title="Zoom In">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
@@ -135,7 +153,7 @@
 
             <div class="viewport-placeholder" id="imagePlaceholder">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-              <p>No image currently staged for inspection</p>
+              <p>NO TARGET CURRENTLY STAGED IN VIEWPORT</p>
             </div>
             <img id="imagePreview" alt="Analyzed Target" style="display: none;" />
           </div>
@@ -143,11 +161,11 @@
           <!-- Filterable Sample Gallery -->
           <div class="gallery-section">
             <div class="gallery-filter-bar">
-              <span style="font-size: 0.72rem; color: var(--text-tertiary); text-transform: uppercase; font-weight: 700; margin-right: 4px;">Samples:</span>
-              <button class="filter-chip active" data-filter="all">All (14)</button>
-              <button class="filter-chip" data-filter="fire">Fire</button>
-              <button class="filter-chip" data-filter="smoke">Smoke</button>
-              <button class="filter-chip" data-filter="neutral">Neutral</button>
+              <span class="gallery-label">DATABASE ARCHIVE:</span>
+              <button class="filter-chip active" data-filter="all">ALL (14)</button>
+              <button class="filter-chip" data-filter="fire">FIRE</button>
+              <button class="filter-chip" data-filter="smoke">SMOKE</button>
+              <button class="filter-chip" data-filter="neutral">NEUTRAL</button>
             </div>
             <div class="gallery-grid" id="samplesGrid">
               <!-- Dynamically populated -->
@@ -156,13 +174,13 @@
         </div>
 
         <!-- Right Column: Threat Assessment & Metrics -->
-        <div class="panel-card">
+        <div class="panel-card tactical-pod">
           <div class="panel-header">
             <div class="panel-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-              <span>Threat Assessment & Telemetry</span>
+              <span>Threat Assessment &amp; Telemetry</span>
             </div>
-            <span class="panel-subtitle">Neural Engine Classification</span>
+            <span class="panel-subtitle">ResNet-50 Softmax Classification</span>
           </div>
 
           <!-- Assessment Result Banner -->
@@ -183,8 +201,9 @@
           </div>
 
           <!-- Class Probability Comparison -->
-          <div style="margin-bottom: 0.5rem; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">
-            Softmax Probability Spectrum
+          <div class="spectrum-header">
+            <span>SOFTMAX PROBABILITY SPECTRUM</span>
+            <span class="spectrum-sub">RESNET-50 LINEAR PROJECTION</span>
           </div>
 
           <div class="distribution-block">
@@ -192,13 +211,13 @@
             <div class="dist-row">
               <div class="dist-label-row">
                 <span class="class-tag">
-                  <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--hazard-fire);"></span>
+                  <span class="class-dot" style="background: var(--hazard-fire);"></span>
                   <span>Class: Fire (Thermal Combustion)</span>
                 </span>
                 <span class="pct-val" id="valFire">0.0%</span>
               </div>
-              <div class="dist-bar-track">
-                <div class="dist-bar-fill fill-hazard-fire" id="barFire" style="width: 0%;"></div>
+              <div class="meter-track">
+                <div class="meter-bar bar-fire" id="barFire" style="width: 0%;"></div>
               </div>
             </div>
 
@@ -206,13 +225,13 @@
             <div class="dist-row">
               <div class="dist-label-row">
                 <span class="class-tag">
-                  <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--hazard-smoke);"></span>
-                  <span>Class: Smoke (Aerosol Particulate)</span>
+                  <span class="class-dot" style="background: var(--hazard-smoke);"></span>
+                  <span>Class: Smoke (Aerosol Dispersion)</span>
                 </span>
                 <span class="pct-val" id="valSmoke">0.0%</span>
               </div>
-              <div class="dist-bar-track">
-                <div class="dist-bar-fill fill-hazard-smoke" id="barSmoke" style="width: 0%;"></div>
+              <div class="meter-track">
+                <div class="meter-bar bar-smoke" id="barSmoke" style="width: 0%;"></div>
               </div>
             </div>
 
@@ -220,47 +239,46 @@
             <div class="dist-row">
               <div class="dist-label-row">
                 <span class="class-tag">
-                  <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--hazard-safe);"></span>
-                  <span>Class: Neutral (Clear / Non-Hazard)</span>
+                  <span class="class-dot" style="background: var(--hazard-safe);"></span>
+                  <span>Class: Neutral (Standard Ambient)</span>
                 </span>
                 <span class="pct-val" id="valNeutral">0.0%</span>
               </div>
-              <div class="dist-bar-track">
-                <div class="dist-bar-fill fill-hazard-safe" id="barNeutral" style="width: 0%;"></div>
+              <div class="meter-track">
+                <div class="meter-bar bar-neutral" id="barNeutral" style="width: 0%;"></div>
               </div>
             </div>
           </div>
 
-          <!-- Operational Telemetry Grid -->
+          <!-- Telemetry Grid -->
           <div class="telemetry-grid">
             <div class="telemetry-cell">
-              <span class="cell-title">Inference Latency</span>
-              <span class="cell-data" id="metaLatency">-- ms</span>
+              <div class="cell-label">Inference Latency</div>
+              <div class="cell-val highlight" id="metaLatency">-- ms</div>
             </div>
             <div class="telemetry-cell">
-              <span class="cell-title">Image Dimensions</span>
-              <span class="cell-data" id="metaResolution">-- x --</span>
+              <div class="cell-label">Input Resolution</div>
+              <div class="cell-val" id="metaResolution">-- x --</div>
             </div>
             <div class="telemetry-cell">
-              <span class="cell-title">Source Origin</span>
-              <span class="cell-data" id="metaSource">Standby</span>
+              <div class="cell-label">Optical Source</div>
+              <div class="cell-val truncate" id="metaSource">--</div>
             </div>
             <div class="telemetry-cell">
-              <span class="cell-title">Threat Level</span>
-              <span class="cell-data" id="metaThreatLevel">Level 0: Standby</span>
+              <div class="cell-label">Surveillance Risk Level</div>
+              <div class="cell-val" id="metaThreatLevel">Level 1: Secure</div>
             </div>
           </div>
 
           <!-- JSON Response Inspector -->
           <details class="inspector-details">
             <summary class="inspector-summary">
-              <span>Inspect Raw JSON Telemetry</span>
-              <button class="btn-copy-code" id="btnCopyJson" title="Copy JSON payload" type="button">
-                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                <span>Copy</span>
-              </button>
+              <span>RAW TELEMETRY PAYLOAD (JSON)</span>
+              <button class="btn-copy-code" id="btnCopyJson">Copy Payload</button>
             </summary>
-            <pre class="raw-json-box" id="jsonPayloadDisplay">{\n  "status": "standby"\n}</pre>
+            <pre class="raw-json-box" id="jsonPayloadDisplay">{
+  "status": "awaiting_telemetry"
+}</pre>
           </details>
         </div>
 
@@ -268,45 +286,47 @@
     </section>
 
     <!-- ========================================================================
-         TAB 2: Video Feed Audit
+         TAB 2: Video Feed Audit Pipeline
          ======================================================================== -->
     <section class="tab-content-panel" id="videoTabPanel" role="tabpanel">
       <div class="grid-2col">
 
-        <!-- Video Ingestion Card -->
-        <div class="panel-card">
+        <!-- Video Ingestion Strip -->
+        <div class="panel-card tactical-pod">
           <div class="panel-header">
             <div class="panel-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
-              <span>Video File Audit Pipeline</span>
+              <span>Temporal Clip Audit Engine</span>
             </div>
-            <span class="panel-subtitle">MP4 / AVI / MOV (Max 50MB)</span>
+            <span class="panel-subtitle">Chronological Frame Batching</span>
           </div>
 
-          <div class="drop-container" id="videoDropzone">
-            <div class="drop-icon-box" style="color: var(--accent-cyan); background: rgba(6, 182, 212, 0.1);">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
+          <!-- Dropzone -->
+          <div class="drop-container tactical-dropzone" id="videoDropzone">
+            <div class="drop-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
             </div>
-            <div class="drop-primary-txt">Drop video footage or browse file</div>
-            <div class="drop-secondary-txt">Samples frames at 0.5s intervals &bull; Max 60 seconds audit</div>
-            <input type="file" id="videoFileInput" class="file-input-hidden" accept="video/*" />
+            <div class="drop-primary-txt">SELECT OR DROP AN MP4 / AVI RECORDING</div>
+            <div class="drop-secondary-txt">Batches keyframes across timeline &bull; Max recommended: 50MB</div>
+            <input type="file" id="videoFileInput" class="file-input-hidden" accept="video/mp4,video/avi,video/quicktime,video/x-msvideo" />
           </div>
 
-          <div id="videoProcessingState" style="display: none; padding: 2rem 1rem; text-align: center;">
-            <div class="dot-blinking" style="width: 14px; height: 14px; margin: 0 auto 0.75rem;"></div>
-            <h4 style="font-size: 1rem; font-weight: 600;">Neural Frame Analysis in Progress...</h4>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">Processing video stream through ResNet-50 tensor pipeline</p>
+          <!-- Progress Indicator -->
+          <div id="videoProcessingState" style="display: none; padding: 2rem; text-align: center;">
+            <div class="spinner-hud" style="margin: 0 auto 1rem;"></div>
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); letter-spacing: 0.05em;">AUDITING SURVEILLANCE TIMELINE...</h4>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.3rem;">Decompressing frames and routing tensors through ResNet-50 head</p>
           </div>
         </div>
 
         <!-- Video Audit Telemetry -->
-        <div class="panel-card">
+        <div class="panel-card tactical-pod">
           <div class="panel-header">
             <div class="panel-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-              <span>Audit KPIs & Temporal Log</span>
+              <span>Temporal KPIs &amp; Incident Chronicle</span>
             </div>
-            <span class="panel-subtitle">Hazard Distribution</span>
+            <span class="panel-subtitle">Temporal Hazard Distribution</span>
           </div>
 
           <div id="videoResultsPanel" style="display: none;">
@@ -331,7 +351,7 @@
             </div>
 
             <!-- Incident Log -->
-            <div style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.4rem;">
+            <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.4rem; letter-spacing: 0.05em;">
               Timestamp Event Timeline
             </div>
             <div class="incident-feed-box" id="videoTimelineFeed" style="max-height: 270px;">
@@ -339,8 +359,8 @@
             </div>
           </div>
 
-          <div id="videoEmptyPrompt" style="padding: 4rem 1rem; text-align: center; color: var(--text-tertiary); font-size: 0.85rem;">
-            Upload an MP4 / AVI surveillance clip to compile a chronological hazard timeline.
+          <div id="videoEmptyPrompt" style="padding: 4rem 1rem; text-align: center; color: var(--text-tertiary); font-size: 0.85rem; letter-spacing: 0.04em;">
+            STAGE AN MP4 / AVI SURVEILLANCE CLIP TO COMPILE A CHRONOLOGICAL HAZARD TIMELINE.
           </div>
         </div>
 
@@ -348,23 +368,23 @@
     </section>
 
     <!-- ========================================================================
-         TAB 3: Live CCTV Surveillance with Authentic HUD
+         TAB 3: Live CCTV Surveillance
          ======================================================================== -->
     <section class="tab-content-panel" id="webcamTabPanel" role="tabpanel">
       <div class="grid-2col">
 
         <!-- CCTV Stage & Camera Control -->
-        <div class="panel-card">
+        <div class="panel-card tactical-pod">
           <div class="panel-header">
             <div class="panel-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-              <span>CCTV Stream Monitor</span>
+              <span>Live CCTV Surveillance Feed</span>
             </div>
-            <span class="panel-subtitle">Real-Time WebRTC Ingestion</span>
+            <span class="panel-subtitle">Real-Time Sensor Ingestion</span>
           </div>
 
           <!-- CCTV Viewport with Overlays -->
-          <div class="cctv-stage" id="cctvStage">
+          <div class="cctv-stage tactical-cctv-frame" id="cctvStage">
             <video id="webcamVideo" autoplay playsinline muted></video>
             <canvas id="webcamCanvas" style="display: none;"></canvas>
 
@@ -379,15 +399,14 @@
                 <div id="hudFpsCounter">INFERENCE: 0.0 FPS</div>
               </div>
 
-              <!-- HUD Reticle & Corner Brackets -->
-              <div class="hud-crosshair"></div>
+              <!-- Corner Brackets -->
               <div class="cctv-corner-tl"></div>
               <div class="cctv-corner-tr"></div>
               <div class="cctv-corner-bl"></div>
               <div class="cctv-corner-br"></div>
 
               <div class="hud-bottom-bar">
-                <span id="hudTimestamp">2026-09-14 00:00:00</span>
+                <span id="hudTimestamp">2026-09-20 00:00:00</span>
                 <span id="hudStreamSpec">RESOLUTION: 640x480 RAW</span>
                 <span id="hudActiveThreatTag" style="font-weight: 700;">STANDBY</span>
               </div>
@@ -399,11 +418,11 @@
             <div class="action-btn-group">
               <button class="btn-cmd btn-cmd-primary" id="btnStartCamera">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                <span>Engage Camera</span>
+                <span>Start Camera</span>
               </button>
               <button class="btn-cmd btn-cmd-danger" id="btnStopCamera" style="display: none;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
-                <span>Disengage</span>
+                <span>Stop Camera</span>
               </button>
               <button class="btn-cmd btn-cmd-secondary" id="btnCaptureSnapshot" disabled>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
@@ -412,8 +431,8 @@
             </div>
 
             <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--text-tertiary);">
-              <label for="cameraSelect">Source:</label>
-              <select id="cameraSelect" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); padding: 3px 6px; font-size: 0.75rem;">
+              <label for="cameraSelect" style="font-family: var(--font-mono); font-weight: 700;">SENSOR SRC:</label>
+              <select id="cameraSelect" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); padding: 4px 8px; font-size: 0.75rem; font-family: var(--font-mono);">
                 <option value="">Default Optical Sensor</option>
               </select>
             </div>
@@ -421,11 +440,11 @@
         </div>
 
         <!-- CCTV Incident Feed & Alarm Monitor -->
-        <div class="panel-card">
+        <div class="panel-card tactical-pod">
           <div class="panel-header">
             <div class="panel-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-              <span>Live Threat Status & Incident Stream</span>
+              <span>Live Threat Status &amp; Incident Stream</span>
             </div>
             <span class="panel-subtitle">Rolling Alert Register</span>
           </div>
@@ -448,9 +467,9 @@
           </div>
 
           <!-- Rolling Live Log -->
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-            <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">
-              Real-Time Incident Stream
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; margin-top: 1rem;">
+            <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">
+              Tactical Alert Chronicle
             </span>
             <button class="btn-copy-code" id="btnClearLog">Clear Log</button>
           </div>
@@ -468,13 +487,13 @@
          TAB 4: REST API & Developer Playground
          ======================================================================== -->
     <section class="tab-content-panel" id="apiTabPanel" role="tabpanel">
-      <div class="panel-card">
+      <div class="panel-card tactical-pod">
         <div class="panel-header">
           <div class="panel-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
             <span>REST API Integration Gateway</span>
           </div>
-          <span class="panel-subtitle">OpenAPI & Edge Camera Hookups</span>
+          <span class="panel-subtitle">OpenAPI &amp; Edge Camera Hookups</span>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 1.25rem;">
@@ -555,78 +574,6 @@
       </div>
     </section>
 
-    <!-- ========================================================================
-         TAB 5: Neural Architecture & Dataset Metrics
-         ======================================================================== -->
-    <section class="tab-content-panel" id="aboutTabPanel" role="tabpanel">
-      <div class="grid-2col">
-
-        <!-- Architecture Breakdown -->
-        <div class="panel-card">
-          <div class="panel-header">
-            <div class="panel-title">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect></svg>
-              <span>ResNet-50 Deep Residual Pipeline</span>
-            </div>
-            <span class="panel-subtitle">Transfer Learning Backbone</span>
-          </div>
-
-          <div style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.6;">
-            <p>
-              The model utilizes a deep residual convolutional network (<strong>ResNet-50</strong>) initialized with ImageNet weights to extract multi-scale spatial and color gradients representative of combustion and dispersion.
-            </p>
-
-            <div style="margin-top: 1rem; background: var(--bg-card); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 0.78rem;">
-              <div style="color: var(--accent-cyan); font-weight: 700; margin-bottom: 6px;">[TENSOR PIPELINE]</div>
-              <div>Input Image: [Batch, 3, 224, 224] (RGB)</div>
-              <div>&darr; Normalized (ImageNet Mean/Std)</div>
-              <div>ResNet-50 Backbone &rarr; 2,048-dim Feature Map</div>
-              <div>&darr; Linear(2048 &rarr; 128) + ReLU()</div>
-              <div>&darr; Linear(128 &rarr; 3)</div>
-              <div>&darr; Softmax(dim=1) &rarr; Probability Spectrum [Fire, Neutral, Smoke]</div>
-            </div>
-
-            <div style="margin-top: 1rem;">
-              <h5 style="color: var(--text-primary); font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Classification Classes:</h5>
-              <ul style="margin-left: 1.25rem; font-size: 0.8rem;">
-                <li><strong style="color: var(--hazard-fire);">Fire:</strong> Open active flames, thermal radiation, combustion cores.</li>
-                <li><strong style="color: var(--hazard-smoke);">Smoke:</strong> Aerosol dispersion, rising smoke plumes, early smoldering.</li>
-                <li><strong style="color: var(--hazard-safe);">Neutral:</strong> Standard ambient indoor/outdoor environments devoid of combustion.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <!-- Empirical Metrics & Curves -->
-        <div class="panel-card">
-          <div class="panel-header">
-            <div class="panel-title">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-              <span>Empirical Validation Metrics</span>
-            </div>
-            <span class="panel-subtitle">Accuracy: ~93% on Test Split</span>
-          </div>
-
-          <div style="display: flex; flex-direction: column; gap: 1rem;">
-            <div>
-              <span style="font-size: 0.75rem; color: var(--text-tertiary); text-transform: uppercase; font-weight: 600;">Validation Accuracy Curve</span>
-              <div style="border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border-subtle); margin-top: 4px; background: #000;">
-                <img src="/api/utils/accuracy.png" alt="Validation Accuracy Curve" style="width: 100%; display: block;" />
-              </div>
-            </div>
-
-            <div>
-              <span style="font-size: 0.75rem; color: var(--text-tertiary); text-transform: uppercase; font-weight: 600;">Cross-Entropy Training Loss Curve</span>
-              <div style="border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border-subtle); margin-top: 4px; background: #000;">
-                <img src="/api/utils/trainloss.png" alt="Training Loss Curve" style="width: 100%; display: block;" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
   </main>
 
   <!-- ========================================================================
@@ -634,8 +581,8 @@
        ======================================================================== -->
   <footer class="cmd-footer">
     <div class="footer-inner">
-      <span>Fire and Smoke Detection AI Platform &bull; Early Warning Framework</span>
-      <span>Engine: PyTorch 2.13.0 &bull; Architecture: ResNet-50 &bull; Framework: Flask</span>
+      <span>FIRE &amp; SMOKE AI SURVEILLANCE SUITE &bull; REAL-TIME HAZARD CLASSIFIER</span>
+      <span>PYTORCH RESNET-50 &bull; WEB AUDIO SIREN INTEGRATION</span>
     </div>
   </footer>
 
