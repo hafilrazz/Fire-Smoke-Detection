@@ -13,7 +13,9 @@ from typing import Dict, Any, List, Optional, Tuple
 import numpy as np
 from PIL import Image
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
+import torchvision.models as models
 import torchvision.transforms as transforms
 import cv2
 
@@ -42,13 +44,23 @@ class FireSmokeDetector:
     def __init__(self, model_path: Optional[str] = None):
         if model_path is None:
             base_dir = os.path.dirname(os.path.abspath(__file__))
-            model_path = os.path.join(base_dir, "trained-models", "model_final.pth")
+            candidate_paths = [
+                os.path.join(base_dir, "fire_smoke_resnet50_final.pth"),
+                os.path.join(base_dir, "trained-models", "fire_smoke_resnet50_final.pth"),
+                os.path.join(base_dir, "trained-models", "model_final.pth"),
+            ]
+            for p in candidate_paths:
+                if os.path.exists(p):
+                    model_path = p
+                    break
+            if model_path is None:
+                model_path = candidate_paths[-1]
         
         self.model_path = model_path
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         logger.info(f"Using device: {self.device}")
 
-        # Image preprocessing pipeline matching training & inference
+        # Image preprocessing pipeline (defaults, updated if checkpoint specifies parameters)
         self.transform = transforms.Compose([
             transforms.Resize(size=(224, 224)),
             transforms.ToTensor(),
@@ -69,18 +81,62 @@ class FireSmokeDetector:
 
         logger.info(f"Loading PyTorch model from {self.model_path}...")
         try:
-            # PyTorch 2.6+ defaults to weights_only=True. The model file contains a full ResNet instance.
-            model = torch.load(self.model_path, map_location=self.device, weights_only=False)
-            model = model.to(self.device)
-            model.eval()
+            # Try weights_only=True first (safe standard for state_dict checkpoints)
+            try:
+                loaded = torch.load(self.model_path, map_location=self.device, weights_only=True)
+            except Exception:
+                # Fallback to weights_only=False for legacy serialized models
+                loaded = torch.load(self.model_path, map_location=self.device, weights_only=False)
 
-            # Fix unparameterized Softmax if present
-            if hasattr(model, "fc") and len(model.fc) > 3:
-                if isinstance(model.fc[3], torch.nn.Softmax):
-                    model.fc[3] = torch.nn.Softmax(dim=1)
+            if isinstance(loaded, dict) and "model_state_dict" in loaded:
+                logger.info("Detected dictionary checkpoint with model_state_dict.")
+                # Extract metadata if available
+                if "class_names" in loaded and isinstance(loaded["class_names"], list):
+                    self.CLASS_NAMES = loaded["class_names"]
 
-            logger.info("Model loaded and set to evaluation mode successfully.")
-            return model
+                img_size = loaded.get("img_size", 224)
+                mean = loaded.get("mean", [0.485, 0.456, 0.406])
+                std = loaded.get("std", [0.229, 0.224, 0.225])
+
+                # Update preprocessing transforms to match training configuration
+                self.transform = transforms.Compose([
+                    transforms.Resize(size=(img_size, img_size)),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=mean, std=std)
+                ])
+
+                # Reconstruct ResNet-50 transfer learning architecture
+                num_classes = len(self.CLASS_NAMES)
+                model = models.resnet50(weights=None)
+                in_features = model.fc.in_features
+                model.fc = nn.Sequential(
+                    nn.Dropout(0.3),
+                    nn.Linear(in_features, 128),
+                    nn.ReLU(),
+                    nn.Dropout(0.2),
+                    nn.Linear(128, num_classes),
+                )
+                model.load_state_dict(loaded["model_state_dict"])
+                model = model.to(self.device)
+                model.eval()
+                logger.info(f"Successfully loaded trained ResNet-50 state_dict with classes: {self.CLASS_NAMES}")
+                return model
+
+            elif isinstance(loaded, torch.nn.Module):
+                model = loaded.to(self.device)
+                model.eval()
+
+                # Fix unparameterized Softmax if present
+                if hasattr(model, "fc") and len(model.fc) > 3:
+                    if isinstance(model.fc[3], torch.nn.Softmax):
+                        model.fc[3] = torch.nn.Identity()
+
+                logger.info("Legacy PyTorch nn.Module loaded and set to evaluation mode successfully.")
+                return model
+
+            else:
+                raise ValueError(f"Unrecognized model checkpoint structure from {self.model_path}")
+
         except Exception as e:
             logger.error(f"Failed to load model: {e}", exc_info=True)
             raise
@@ -88,9 +144,10 @@ class FireSmokeDetector:
     def _extract_spatial_and_global(self, tensor: torch.Tensor) -> Tuple[np.ndarray, np.ndarray]:
         """
         Runs forward pass through ResNet-50 backbone to extract both:
-        1. Global class probabilities [3] (Fire, Neutral, Smoke)
-        2. Spatial class activation map [3, 7, 7] from layer4
+        1. Global class probabilities [num_classes] (Fire, Neutral, Smoke)
+        2. Spatial class activation map [num_classes, 7, 7] from layer4
         """
+        num_classes = len(self.CLASS_NAMES)
         with torch.no_grad():
             f = self.model.conv1(tensor)
             f = self.model.bn1(f)
@@ -103,16 +160,14 @@ class FireSmokeDetector:
 
             # Global average pooled classification
             pooled = self.model.avgpool(f).flatten(1)  # [1, 2048]
-            h_glob = self.model.fc[1](self.model.fc[0](pooled))  # [1, 128]
-            glob_logits = self.model.fc[2](h_glob)  # [1, 3]
+            glob_logits = self.model.fc(pooled)  # [1, num_classes]
             glob_probs = F.softmax(glob_logits, dim=1).squeeze(0).cpu().numpy()
 
             # Spatial localized classification across 7x7 grid
             b, c, sh, sw = f.shape
             f_perm = f.permute(0, 2, 3, 1).reshape(-1, c)  # [49, 2048]
-            h_spatial = self.model.fc[1](self.model.fc[0](f_perm))  # [49, 128]
-            spatial_logits = self.model.fc[2](h_spatial)  # [49, 3]
-            spatial_probs = F.softmax(spatial_logits, dim=1).reshape(sh, sw, 3).permute(2, 0, 1).cpu().numpy()  # [3, 7, 7]
+            spatial_logits = self.model.fc(f_perm)  # [49, num_classes]
+            spatial_probs = F.softmax(spatial_logits, dim=1).reshape(sh, sw, num_classes).permute(2, 0, 1).cpu().numpy()  # [num_classes, 7, 7]
 
         return glob_probs, spatial_probs
 

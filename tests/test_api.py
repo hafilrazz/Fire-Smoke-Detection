@@ -36,7 +36,7 @@ def test_predict_known_samples():
         assert res["boxes"] == []  # Bounding boxes removed as requested
 
     # Fire sample
-    fire_path = os.path.join("test-imgs", "26.jpg")
+    fire_path = os.path.join("test-imgs", "7.jpg")
     if os.path.exists(fire_path):
         with open(fire_path, "rb") as f:
             res = detector.predict_bytes(f.read())
