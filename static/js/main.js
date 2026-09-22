@@ -101,12 +101,12 @@ document.addEventListener("DOMContentLoaded", () => {
       audioToggleBtn.classList.toggle("active", !isMuted);
 
       if (isMuted) {
-        if (audioBtnText) audioBtnText.textContent = "Siren: Muted";
-        showToast("Audio alarm sirens muted");
+        if (audioBtnText) audioBtnText.textContent = "Alarm: Off";
+        showToast("Sound alerts muted");
       } else {
-        if (audioBtnText) audioBtnText.textContent = "Siren: Armed";
+        if (audioBtnText) audioBtnText.textContent = "Alarm: On";
         playTone(700, 1000, 0.15, "sine", 0.15);
-        showToast("Audio alarm sirens armed");
+        showToast("Sound alerts enabled");
       }
     });
   }
@@ -173,7 +173,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ========================================================================
-  // 5b. DEFCON Readiness & Atmospheric Telemetry
+  // 5b. Overall Status Updates
   // ========================================================================
   function updateGlobalDefconState(pred, confidence = 0, latency = null) {
     const defconBadge = document.getElementById("hudDefconBadge");
@@ -181,21 +181,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (pred === "Fire") {
       document.body.className = "threat-state-fire";
       if (defconBadge) {
-        defconBadge.textContent = "DEFCON 1 // CRITICAL FIRE";
+        defconBadge.textContent = "FIRE DETECTED";
         defconBadge.style.color = "var(--hazard-fire)";
         defconBadge.style.textShadow = "0 0 10px var(--hazard-fire-glow)";
       }
     } else if (pred === "Smoke") {
       document.body.className = "threat-state-smoke";
       if (defconBadge) {
-        defconBadge.textContent = "DEFCON 2 // SMOKE ADVISORY";
+        defconBadge.textContent = "SMOKE DETECTED";
         defconBadge.style.color = "var(--hazard-smoke)";
         defconBadge.style.textShadow = "0 0 10px var(--hazard-smoke-glow)";
       }
     } else {
       document.body.className = "threat-state-safe";
       if (defconBadge) {
-        defconBadge.textContent = "DEFCON 4 // SECURE";
+        defconBadge.textContent = "ALL CLEAR";
         defconBadge.style.color = "var(--hazard-safe)";
         defconBadge.style.textShadow = "0 0 8px var(--hazard-safe-glow)";
       }
@@ -203,7 +203,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ========================================================================
-  // 6. Telemetry & Health Probe
+  // 6. Device Status Probe
   // ========================================================================
   async function probeSystemHealth() {
     try {
@@ -213,10 +213,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const modelPill = document.getElementById("modelPill");
         const devicePill = document.getElementById("devicePill");
         if (modelPill) modelPill.textContent = `${data.model}`;
-        if (devicePill) devicePill.textContent = `DEV: ${data.device.toUpperCase()}`;
+        if (devicePill) devicePill.textContent = `Device: ${data.device.toUpperCase()}`;
       }
     } catch (e) {
-      console.warn("Telemetry probe failed:", e);
+      console.warn("System probe failed:", e);
     }
   }
   probeSystemHealth();
@@ -287,7 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       applyThreatTelemetry(data);
     } catch (e) {
-      applyAssessmentError("Failed to execute inference on sample.");
+      applyAssessmentError("Failed to analyze sample image.");
     }
   }
 
@@ -376,7 +376,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function processUploadedImage(file) {
     if (!file.type.startsWith("image/")) {
-      showToast("Invalid file format. Provide an image.");
+      showToast("Please choose an image file (PNG, JPG, WEBP).");
       return;
     }
 
@@ -407,7 +407,7 @@ document.addEventListener("DOMContentLoaded", () => {
         applyThreatTelemetry(data);
       }
     } catch (err) {
-      applyAssessmentError("Network transmission error during inference.");
+      applyAssessmentError("Error analyzing image. Please try again.");
     }
   }
 
@@ -419,8 +419,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const iconBox = document.getElementById("threatIconBox");
 
     if (banner) banner.className = "assessment-banner";
-    if (heading) heading.textContent = "INSPECTING TENSOR...";
-    if (desc) desc.textContent = "Running forward pass through ResNet-50 feature extractor";
+    if (heading) heading.textContent = "ANALYZING IMAGE...";
+    if (desc) desc.textContent = "Checking for signs of fire or smoke...";
     if (pct) pct.textContent = "--%";
     if (iconBox) {
       iconBox.innerHTML = `<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
@@ -440,10 +440,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const confidence = data.confidence || 0.0;
     const isHazard = data.is_hazard;
 
-    // Sync DEFCON state, atmospheric lighting, and tactical diagnostic canvases
+    // Sync overall status and alert sounds
     updateGlobalDefconState(pred, confidence, data.latency_ms);
 
-    // Trigger siren if confidence crosses user-configured threshold
+    // Trigger sound alert if confidence crosses user-configured threshold
     if (isHazard && confidence >= detectionThreshold) {
       triggerHazardSiren(pred);
     }
@@ -464,16 +464,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (heading) {
       heading.textContent =
         pred === "Fire"
-          ? "CRITICAL HAZARD - FIRE DETECTED"
+          ? "FIRE DETECTED!"
           : pred === "Smoke"
-          ? "HIGH ADVISORY - SMOKE DETECTED"
-          : "STATUS SECURE - AMBIENT NORMAL";
+          ? "SMOKE DETECTED!"
+          : "SAFE - ALL CLEAR";
     }
 
     if (desc) {
       desc.textContent = isHazard
-        ? `Thermal anomaly detected. Severity: ${data.hazard_level || "ALERT"}. Recommended immediate dispatch.`
-        : "No combustion or smoke dispersal identified. Scene parameters verify clear.";
+        ? `${pred} detected with ${confidence.toFixed(1)}% confidence.`
+        : "No fire or smoke detected in this image.";
     }
 
     if (pct) {
@@ -491,18 +491,18 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // Global Command Status Pill
+    // Global Status Pill
     if (globalPill) {
       if (pred === "Fire") {
-        globalPill.textContent = "CRITICAL: FIRE CONFIRMED";
+        globalPill.textContent = "FIRE DETECTED";
         globalPill.style.color = "var(--hazard-fire)";
         globalPill.style.borderColor = "rgba(239, 68, 68, 0.4)";
       } else if (pred === "Smoke") {
-        globalPill.textContent = "WARNING: SMOKE IDENTIFIED";
+        globalPill.textContent = "SMOKE DETECTED";
         globalPill.style.color = "var(--hazard-smoke)";
         globalPill.style.borderColor = "rgba(245, 158, 11, 0.4)";
       } else {
-        globalPill.textContent = "SECURE - NO THREATS";
+        globalPill.textContent = "ALL CLEAR";
         globalPill.style.color = "var(--hazard-safe)";
         globalPill.style.borderColor = "rgba(16, 185, 129, 0.3)";
       }
@@ -514,7 +514,7 @@ document.addEventListener("DOMContentLoaded", () => {
     syncMeter("valSmoke", "barSmoke", probs["Smoke"] || 0.0);
     syncMeter("valNeutral", "barNeutral", probs["Neutral"] || 0.0);
 
-    // Update Telemetry Grid
+    // Update Details Grid
     const metaLatency = document.getElementById("metaLatency");
     if (metaLatency) metaLatency.textContent = `${data.latency_ms || "--"} ms`;
 
@@ -522,16 +522,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (metaResolution) metaResolution.textContent = data.resolution || "-- x --";
 
     const metaSource = document.getElementById("metaSource");
-    if (metaSource) metaSource.textContent = data.filename || data.source || "Optical Ingestion";
+    if (metaSource) metaSource.textContent = data.filename || data.source || "Uploaded Image";
 
     const metaThreatLevel = document.getElementById("metaThreatLevel");
     if (metaThreatLevel) {
       metaThreatLevel.textContent =
         pred === "Fire"
-          ? "Level 3: Critical"
+          ? "High Risk"
           : pred === "Smoke"
-          ? "Level 2: Warning"
-          : "Level 1: Secure";
+          ? "Warning"
+          : "Safe";
     }
 
     // Update JSON Inspector
@@ -551,7 +551,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function applyAssessmentError(errText) {
     const heading = document.getElementById("threatHeading");
     const desc = document.getElementById("threatDescription");
-    if (heading) heading.textContent = "INSPECTION ERROR";
+    if (heading) heading.textContent = "ERROR";
     if (desc) desc.textContent = errText;
   }
 
@@ -563,14 +563,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const jsonDisplay = document.getElementById("jsonPayloadDisplay");
       if (jsonDisplay && navigator.clipboard) {
         navigator.clipboard.writeText(jsonDisplay.textContent).then(() => {
-          showToast("JSON payload copied to clipboard");
+          showToast("JSON details copied to clipboard");
         });
       }
     });
   }
 
   // ========================================================================
-  // 9. Video Feed Audit Pipeline
+  // 9. Video Scan Pipeline
   // ========================================================================
   const videoDropzone = document.getElementById("videoDropzone");
   const videoFileInput = document.getElementById("videoFileInput");
@@ -604,7 +604,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function executeVideoAudit(file) {
     if (!file.type.startsWith("video/")) {
-      showToast("Invalid format. Please supply an MP4/AVI/MOV video.");
+      showToast("Please choose a video file (MP4, AVI, MOV).");
       return;
     }
 
@@ -624,7 +624,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .then((data) => {
         if (videoProcessingState) videoProcessingState.style.display = "none";
         if (data.status === "error") {
-          showToast(`Audit failed: ${data.message}`);
+          showToast(`Scan failed: ${data.message}`);
           if (videoEmptyPrompt) videoEmptyPrompt.style.display = "block";
         } else {
           renderVideoAuditResults(data);
@@ -643,7 +643,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const kpiOverall = document.getElementById("kpiOverall");
     if (kpiOverall) {
-      kpiOverall.textContent = data.overall_prediction.toUpperCase();
+      kpiOverall.textContent = data.overall_prediction === "Neutral" ? "SAFE" : data.overall_prediction.toUpperCase();
       kpiOverall.style.color =
         data.overall_prediction === "Fire"
           ? "var(--hazard-fire)"
@@ -676,7 +676,7 @@ document.addEventListener("DOMContentLoaded", () => {
             : "tag-safe";
 
         row.innerHTML = `
-          <span>TIMESTAMP: ${item.timestamp.toFixed(1)}s (Frame #${item.frame})</span>
+          <span>Time: ${item.timestamp.toFixed(1)}s (Frame #${item.frame})</span>
           <span class="pill-threat-tag ${tagClass}">${item.prediction} ${item.confidence.toFixed(1)}%</span>
         `;
         timelineFeed.appendChild(row);
@@ -689,7 +689,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ========================================================================
-  // 10. Live CCTV Surveillance Engine
+  // 10. Live Camera Detection Engine
   // ========================================================================
   const btnStartCamera = document.getElementById("btnStartCamera");
   const btnStopCamera = document.getElementById("btnStopCamera");
@@ -722,7 +722,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let fpsTimerStart = Date.now();
   let latestCctvData = null;
   let consecutiveHazardCount = 0;
-  let currentFacingMode = "user"; // "user" (front/selfie) or "environment" (rear/back)
+  let currentFacingMode = "user"; // "user" (front) or "environment" (rear)
 
   // Enumerate Connected Camera Devices
   async function populateCameraDevices() {
@@ -735,24 +735,24 @@ document.addEventListener("DOMContentLoaded", () => {
         videoDevices.forEach((dev, idx) => {
           const opt = document.createElement("option");
           opt.value = dev.deviceId;
-          let label = dev.label || `Optical Sensor Channel 0${idx + 1}`;
+          let label = dev.label || `Camera ${idx + 1}`;
           const lower = label.toLowerCase();
           if (lower.includes("back") || lower.includes("rear") || lower.includes("environment")) {
-            label = `[BACK] ${label}`;
+            label = `[Back Camera] ${label}`;
           } else if (lower.includes("front") || lower.includes("user") || lower.includes("selfie")) {
-            label = `[FRONT] ${label}`;
+            label = `[Front Camera] ${label}`;
           }
           opt.textContent = label;
           cameraSelect.appendChild(opt);
         });
       }
     } catch (e) {
-      console.warn("Could not enumerate camera devices:", e);
+      console.warn("Could not list camera devices:", e);
     }
   }
   populateCameraDevices();
 
-  // Switch between Selfie (User) and Rear (Environment) Camera
+  // Switch between Front (User) and Back (Environment) Camera
   async function switchCamera() {
     initAudioContext();
     playTone(1100, 1400, 0.04, "sine", 0.04);
@@ -762,9 +762,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const isRear = currentFacingMode === "environment";
 
     // Update UI elements
-    if (switchCamLabel) switchCamLabel.textContent = isRear ? "Rear Cam" : "Selfie Cam";
-    if (hudFlipCamText) hudFlipCamText.textContent = isRear ? "REAR" : "FRONT";
-    if (hudCameraId) hudCameraId.textContent = isRear ? "FEED: SURV-CAM-02 (REAR)" : "FEED: SURV-CAM-01 (FRONT)";
+    if (switchCamLabel) switchCamLabel.textContent = isRear ? "Back Camera" : "Front Camera";
+    if (hudFlipCamText) hudFlipCamText.textContent = isRear ? "BACK" : "FRONT";
+    if (hudCameraId) hudCameraId.textContent = isRear ? "Back Camera" : "Front Camera";
 
     // Attempt to sync dropdown if devices are enumerated
     if (cameraSelect && cameraSelect.options.length > 1) {
@@ -797,7 +797,7 @@ document.addEventListener("DOMContentLoaded", () => {
         cctvStream = await navigator.mediaDevices.getUserMedia(constraints);
         webcamVideo.srcObject = cctvStream;
         await webcamVideo.play();
-        showToast(`Active Sensor: ${isRear ? "Rear / Back Camera" : "Front / Selfie Camera"}`);
+        showToast(`Using ${isRear ? "Back Camera" : "Front Camera"}`);
       } catch (err) {
         console.warn("Camera switch error with facingMode, falling back:", err);
         try {
@@ -809,7 +809,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     } else {
-      showToast(`Sensor target: ${isRear ? "Rear (Back) Camera" : "Front (Selfie) Camera"}`);
+      showToast(`Selected: ${isRear ? "Back Camera" : "Front Camera"}`);
     }
   }
 
@@ -820,7 +820,7 @@ document.addEventListener("DOMContentLoaded", () => {
     hudFlipCamBtn.addEventListener("click", switchCamera);
   }
 
-  // Allow dropdown change to immediately switch sensor during live streaming
+  // Allow dropdown change to immediately switch camera
   if (cameraSelect) {
     cameraSelect.addEventListener("change", async () => {
       if (isCctvLive && cameraSelect.value) {
@@ -840,9 +840,9 @@ document.addEventListener("DOMContentLoaded", () => {
           cctvStream = await navigator.mediaDevices.getUserMedia(constraints);
           webcamVideo.srcObject = cctvStream;
           await webcamVideo.play();
-          showToast("Sensor switched to: " + (cameraSelect.options[cameraSelect.selectedIndex]?.textContent || "Sensor"));
+          showToast("Switched to: " + (cameraSelect.options[cameraSelect.selectedIndex]?.textContent || "Camera"));
         } catch (e) {
-          showToast("Could not switch sensor: " + e.message);
+          showToast("Could not switch camera: " + e.message);
         }
       }
     });
@@ -878,17 +878,17 @@ document.addEventListener("DOMContentLoaded", () => {
       btnStopCamera.style.display = "inline-flex";
       if (btnCaptureSnapshot) btnCaptureSnapshot.disabled = false;
 
-      if (cctvThreatHeading) cctvThreatHeading.textContent = "SURVEILLANCE ENGAGED";
-      if (cctvThreatSub) cctvThreatSub.textContent = "Active perimeter scan in progress...";
+      if (cctvThreatHeading) cctvThreatHeading.textContent = "CAMERA ACTIVE";
+      if (cctvThreatSub) cctvThreatSub.textContent = "Monitoring live camera feed for fire and smoke...";
 
       // Re-populate devices with authorized device labels
       populateCameraDevices();
 
-      // Poll frames every 350ms for low-latency near real-time detection
+      // Poll frames every 350ms for low-latency detection
       cctvInterval = setInterval(pollWebcamFrame, 350);
-      showToast("CCTV surveillance stream engaged");
+      showToast("Camera started");
     } catch (err) {
-      alert("Unable to access optical sensor: " + err.message);
+      alert("Unable to access camera: " + err.message);
     }
   }
 
@@ -913,11 +913,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnCaptureSnapshot) btnCaptureSnapshot.disabled = true;
 
     if (cctvAssessmentBanner) cctvAssessmentBanner.className = "assessment-banner";
-    if (cctvThreatHeading) cctvThreatHeading.textContent = "SENSOR OFFLINE";
-    if (cctvThreatSub) cctvThreatSub.textContent = "Activate video ingestion to initiate real-time AI perimeter surveillance";
+    if (cctvThreatHeading) cctvThreatHeading.textContent = "CAMERA OFFLINE";
+    if (cctvThreatSub) cctvThreatSub.textContent = "Click Start Camera to begin live detection";
     if (cctvThreatPct) cctvThreatPct.textContent = "--%";
     if (hudActiveThreatTag) hudActiveThreatTag.textContent = "STANDBY";
-    if (hudFpsCounter) hudFpsCounter.textContent = "INFERENCE: 0.0 FPS";
+    if (hudFpsCounter) hudFpsCounter.textContent = "0.0 FPS";
     updateGlobalDefconState("Neutral", 0, null);
   }
 
@@ -946,12 +946,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const now = Date.now();
       if (now - fpsTimerStart >= 1000) {
         const measuredFps = ((fpsSampleCount * 1000) / (now - fpsTimerStart)).toFixed(1);
-        if (hudFpsCounter) hudFpsCounter.textContent = `INFERENCE: ${measuredFps} FPS`;
+        if (hudFpsCounter) hudFpsCounter.textContent = `${measuredFps} FPS`;
         fpsSampleCount = 0;
         fpsTimerStart = now;
       }
     } catch (e) {
-      console.warn("CCTV frame infer error:", e);
+      console.warn("Camera frame error:", e);
     } finally {
       isFrameInFlight = false;
     }
@@ -964,7 +964,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const confidence = data.confidence || 0.0;
     const isHazard = data.is_hazard;
 
-    // Sync DEFCON state, atmospheric lighting, and tactical diagnostic canvases
+    // Sync overall status and alert sounds
     updateGlobalDefconState(pred, confidence, data.latency_ms);
 
     cctvAssessmentBanner.className = "assessment-banner";
@@ -979,16 +979,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (cctvThreatHeading) {
       cctvThreatHeading.textContent =
         pred === "Fire"
-          ? "CRITICAL HAZARD - FIRE DETECTED"
+          ? "FIRE DETECTED!"
           : pred === "Smoke"
-          ? "HIGH ADVISORY - SMOKE DETECTED"
-          : "STATUS SECURE - PERIMETER CLEAR";
+          ? "SMOKE DETECTED!"
+          : "SAFE - ALL CLEAR";
     }
 
     if (cctvThreatSub) {
       cctvThreatSub.textContent = isHazard
-        ? `Optical trigger: ${data.hazard_level || "ALERT"} state detected by neural classifier.`
-        : "Perimeter clear. No thermal combustion signatures detected.";
+        ? `${pred} detected by AI camera scanner. Check area immediately!`
+        : "Area is clear. No fire or smoke detected.";
     }
 
     if (cctvThreatPct) {
@@ -998,15 +998,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (hudActiveThreatTag) {
       if (isHazard) {
-        hudActiveThreatTag.textContent = `THREAT: ${pred.toUpperCase()} (${confidence.toFixed(0)}%)`;
+        hudActiveThreatTag.textContent = `${pred.toUpperCase()} (${confidence.toFixed(0)}%)`;
         hudActiveThreatTag.style.color = data.color_hex || (pred === "Fire" ? "var(--hazard-fire)" : "var(--hazard-smoke)");
       } else {
-        hudActiveThreatTag.textContent = "SECURE - CLEAR";
+        hudActiveThreatTag.textContent = "ALL CLEAR";
         hudActiveThreatTag.style.color = "var(--hazard-safe)";
       }
     }
 
-    // Temporal verification: Require at least 2 consecutive hazard frames before triggering audio alarm
+    // Require at least 2 consecutive hazard frames before triggering sound alarm and log
     if (isHazard && confidence >= detectionThreshold) {
       consecutiveHazardCount++;
       if (consecutiveHazardCount >= 2) {
@@ -1018,11 +1018,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Incident Feed Logger
+  // Activity Log
   let lastLoggedIncidentTime = 0;
   function logIncidentFeed(predClass, conf) {
     const now = Date.now();
-    // Throttle log entries to once per 2.5 seconds to prevent spamming
+    // Throttle log entries to once per 2.5 seconds
     if (now - lastLoggedIncidentTime < 2500 || !liveIncidentFeed) return;
     lastLoggedIncidentTime = now;
 
@@ -1032,12 +1032,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const tagClass = predClass === "Fire" ? "tag-fire" : "tag-smoke";
 
     row.innerHTML = `
-      <span>[${timeStr}] CAM-01 ANOMALY</span>
+      <span>[${timeStr}] ${predClass} Alert</span>
       <span class="pill-threat-tag ${tagClass}">${predClass} ${conf.toFixed(1)}%</span>
     `;
 
     // Remove standby message if first log
-    if (liveIncidentFeed.children.length === 1 && liveIncidentFeed.children[0].textContent.includes("Waiting")) {
+    if (liveIncidentFeed.children.length === 1 && (liveIncidentFeed.children[0].textContent.includes("Waiting") || liveIncidentFeed.children[0].textContent.includes("Camera is off") || liveIncidentFeed.children[0].textContent.includes("No alerts"))) {
       liveIncidentFeed.innerHTML = "";
     }
 
@@ -1048,14 +1048,14 @@ document.addEventListener("DOMContentLoaded", () => {
     btnClearLog.addEventListener("click", () => {
       liveIncidentFeed.innerHTML = `
         <div class="incident-row" style="color: var(--text-tertiary);">
-          <span>Incident log register cleared. Surveillance active.</span>
+          <span>Alert history cleared. Camera monitoring...</span>
         </div>
       `;
-      showToast("Incident stream cleared");
+      showToast("Alert history cleared");
     });
   }
 
-  // Snapshot Capture & Download with Bounding Box Overlay
+  // Snapshot Capture & Download
   if (btnCaptureSnapshot && webcamVideo) {
     btnCaptureSnapshot.addEventListener("click", () => {
       if (!isCctvLive) return;
@@ -1076,15 +1076,15 @@ document.addEventListener("DOMContentLoaded", () => {
       snapCtx.fillRect(10, 10, 260, 36);
       snapCtx.fillStyle = latestCctvData?.is_hazard ? "#ef4444" : "#10b981";
       snapCtx.font = "bold 13px 'JetBrains Mono', monospace";
-      const statusStamp = latestCctvData?.is_hazard ? `HAZARD: ${latestCctvData.prediction.toUpperCase()}` : "STATUS: SECURE";
+      const statusStamp = latestCctvData?.is_hazard ? `${latestCctvData.prediction.toUpperCase()} DETECTED` : "STATUS: SAFE";
       snapCtx.fillText(`FIRE-SMOKE AI | ${statusStamp}`, 20, 33);
 
       const dataUrl = snapCanvas.toDataURL("image/png");
       const a = document.createElement("a");
       a.href = dataUrl;
-      a.download = `CCTV_Snapshot_${Date.now()}.png`;
+      a.download = `Snapshot_${Date.now()}.png`;
       a.click();
-      showToast("High-resolution surveillance snapshot downloaded");
+      showToast("Snapshot downloaded");
     });
   }
 

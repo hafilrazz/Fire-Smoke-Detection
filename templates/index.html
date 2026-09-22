@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fire & smoke</title>
+  <title>Fire & Smoke Detection</title>
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,10 +12,7 @@
 <body class="threat-state-safe">
 
   <!-- ========================================================================
-       Top Mission Command Bridge
-       ======================================================================== -->
-  <!-- ========================================================================
-       Top Mission Command Bridge
+       Top Header
        ======================================================================== -->
   <header class="cmd-header aegis-bridge">
     <div class="cmd-header-inner">
@@ -28,28 +25,28 @@
           </svg>
         </div>
         <div class="brand-text">
-          <h1>FIRE &amp; SMOKE <span class="tag">AI CONSOLE</span></h1>
+          <h1>FIRE &amp; SMOKE <span class="tag">AI DETECTOR</span></h1>
         </div>
       </div>
 
-      <!-- Center HUD: DEFCON Alert Readiness -->
+      <!-- Center Status: Current Status -->
       <div class="bridge-center-hud">
         <div class="hud-coord-item">
-          <span class="hud-coord-label">DEFCON STATE:</span>
-          <span class="hud-defcon-val" id="hudDefconBadge">DEFCON 4 // SECURE</span>
+          <span class="hud-coord-label">STATUS:</span>
+          <span class="hud-defcon-val" id="hudDefconBadge">ALL CLEAR</span>
         </div>
       </div>
 
       <div class="telemetry-group">
         <div class="telemetry-pill" id="liveClockPill">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-          <span id="liveClockDisplay">00:00:00 UTC</span>
+          <span id="liveClockDisplay">00:00:00</span>
         </div>
         <div class="telemetry-pill" id="modelPill">ResNet-50 PyTorch</div>
-        <div class="telemetry-pill" id="devicePill">DEV: CPU</div>
-        <button class="btn-header active" id="audioToggleBtn" title="Toggle audio alert siren">
+        <div class="telemetry-pill" id="devicePill">Device: CPU</div>
+        <button class="btn-header active" id="audioToggleBtn" title="Toggle sound alerts">
           <svg id="audioIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.08"></path></svg>
-          <span id="audioBtnText">Siren: Armed</span>
+          <span id="audioBtnText">Alarm: On</span>
         </button>
       </div>
     </div>
@@ -63,7 +60,7 @@
     <!-- Status Bar -->
     <div class="quick-controls-bar tactical-sub-strip">
       <div class="control-item">
-        <span class="control-label">SENSITIVITY GATE:</span>
+        <span class="control-label">SENSITIVITY:</span>
         <div class="slider-group">
           <input type="range" id="thresholdSlider" min="50" max="95" value="70" step="5" />
           <span class="threshold-val" id="thresholdValDisplay">70%</span>
@@ -71,37 +68,33 @@
       </div>
 
       <div class="control-item">
-        <span class="control-label">PERIMETER INCIDENT:</span>
+        <span class="control-label">ALERT STATUS:</span>
         <span class="telemetry-pill" id="globalIncidentPill" style="color: var(--hazard-safe); border-color: rgba(16, 185, 129, 0.4);">
-          SECURE - NO THREATS
+          ALL CLEAR
         </span>
       </div>
     </div>
 
-    <!-- Sensor Channel Selector Strip -->
+    <!-- Navigation Tabs -->
     <nav class="nav-tab-strip tactical-channel-bar" role="tablist">
       <button class="nav-tab-item tactical-channel-btn active" data-tab="imageTabPanel" role="tab">
-        <span class="channel-code">CH-01</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-        <span class="channel-title">IMAGE SCANNER</span>
+        <span class="channel-title">IMAGE SCAN</span>
       </button>
 
       <button class="nav-tab-item tactical-channel-btn" data-tab="videoTabPanel" role="tab">
-        <span class="channel-code">CH-02</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
-        <span class="channel-title">VIDEO AUDIT</span>
+        <span class="channel-title">VIDEO SCAN</span>
       </button>
 
       <button class="nav-tab-item tactical-channel-btn" data-tab="webcamTabPanel" role="tab">
-        <span class="channel-code">CH-03</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-        <span class="channel-title">LIVE PERIMETER</span>
+        <span class="channel-title">LIVE CAMERA</span>
       </button>
 
       <button class="nav-tab-item tactical-channel-btn" data-tab="apiTabPanel" role="tab">
-        <span class="channel-code">CH-04</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-        <span class="channel-title">REST API</span>
+        <span class="channel-title">API DOCS</span>
       </button>
     </nav>
 
@@ -116,9 +109,9 @@
           <div class="panel-header">
             <div class="panel-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-              <span>Target Ingestion &amp; Viewport</span>
+              <span>Upload Image</span>
             </div>
-            <span class="panel-subtitle">Upload / Clipboard / Quick Sample</span>
+            <span class="panel-subtitle">Upload, paste, or pick a sample</span>
           </div>
 
           <!-- Dropzone -->
@@ -126,7 +119,7 @@
             <div class="drop-icon-box">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
             </div>
-            <div class="drop-primary-txt">SELECT OR DROP AN IMAGE TO ANALYZE</div>
+            <div class="drop-primary-txt">SELECT OR DROP AN IMAGE</div>
             <div class="drop-secondary-txt">Supports PNG, JPG, WEBP &bull; Paste from clipboard with <kbd>Ctrl+V</kbd></div>
             <input type="file" id="imageFileInput" class="file-input-hidden" accept="image/*" />
           </div>
@@ -153,7 +146,7 @@
 
             <div class="viewport-placeholder" id="imagePlaceholder">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-              <p>NO TARGET CURRENTLY STAGED IN VIEWPORT</p>
+              <p>NO IMAGE SELECTED</p>
             </div>
             <img id="imagePreview" alt="Analyzed Target" style="display: none;" />
           </div>
@@ -161,8 +154,8 @@
           <!-- Filterable Sample Gallery -->
           <div class="gallery-section">
             <div class="gallery-filter-bar">
-              <span class="gallery-label">DATABASE ARCHIVE:</span>
-              <button class="filter-chip active" data-filter="all">ALL (14)</button>
+              <span class="gallery-label">SAMPLE IMAGES:</span>
+              <button class="filter-chip active" data-filter="all">ALL (15)</button>
               <button class="filter-chip" data-filter="fire">FIRE</button>
               <button class="filter-chip" data-filter="smoke">SMOKE</button>
               <button class="filter-chip" data-filter="neutral">NEUTRAL</button>
@@ -173,14 +166,14 @@
           </div>
         </div>
 
-        <!-- Right Column: Threat Assessment & Metrics -->
+        <!-- Right Column: Detection Results & Metrics -->
         <div class="panel-card tactical-pod">
           <div class="panel-header">
             <div class="panel-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-              <span>Threat Assessment &amp; Telemetry</span>
+              <span>Detection Results</span>
             </div>
-            <span class="panel-subtitle">ResNet-50 Softmax Classification</span>
+            <span class="panel-subtitle">ResNet-50 AI Analysis</span>
           </div>
 
           <!-- Assessment Result Banner -->
@@ -190,8 +183,8 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
               </div>
               <div class="threat-title-group">
-                <h3 id="threatHeading">SYSTEM READY</h3>
-                <p id="threatDescription">Stage an image or click a sample to execute inference</p>
+                <h3 id="threatHeading">READY</h3>
+                <p id="threatDescription">Upload an image or pick a sample below to test</p>
               </div>
             </div>
             <div class="threat-metric-box">
@@ -202,8 +195,8 @@
 
           <!-- Class Probability Comparison -->
           <div class="spectrum-header">
-            <span>SOFTMAX PROBABILITY SPECTRUM</span>
-            <span class="spectrum-sub">RESNET-50 LINEAR PROJECTION</span>
+            <span>PREDICTION PROBABILITIES</span>
+            <span class="spectrum-sub">CONFIDENCE BREAKDOWN</span>
           </div>
 
           <div class="distribution-block">
@@ -212,7 +205,7 @@
               <div class="dist-label-row">
                 <span class="class-tag">
                   <span class="class-dot" style="background: var(--hazard-fire);"></span>
-                  <span>Class: Fire (Thermal Combustion)</span>
+                  <span>Fire</span>
                 </span>
                 <span class="pct-val" id="valFire">0.0%</span>
               </div>
@@ -226,7 +219,7 @@
               <div class="dist-label-row">
                 <span class="class-tag">
                   <span class="class-dot" style="background: var(--hazard-smoke);"></span>
-                  <span>Class: Smoke (Aerosol Dispersion)</span>
+                  <span>Smoke</span>
                 </span>
                 <span class="pct-val" id="valSmoke">0.0%</span>
               </div>
@@ -240,7 +233,7 @@
               <div class="dist-label-row">
                 <span class="class-tag">
                   <span class="class-dot" style="background: var(--hazard-safe);"></span>
-                  <span>Class: Neutral (Standard Ambient)</span>
+                  <span>Neutral (Normal)</span>
                 </span>
                 <span class="pct-val" id="valNeutral">0.0%</span>
               </div>
@@ -253,31 +246,31 @@
           <!-- Telemetry Grid -->
           <div class="telemetry-grid">
             <div class="telemetry-cell">
-              <div class="cell-label">Inference Latency</div>
+              <div class="cell-label">Response Time</div>
               <div class="cell-val highlight" id="metaLatency">-- ms</div>
             </div>
             <div class="telemetry-cell">
-              <div class="cell-label">Input Resolution</div>
+              <div class="cell-label">Image Size</div>
               <div class="cell-val" id="metaResolution">-- x --</div>
             </div>
             <div class="telemetry-cell">
-              <div class="cell-label">Optical Source</div>
+              <div class="cell-label">Source File</div>
               <div class="cell-val truncate" id="metaSource">--</div>
             </div>
             <div class="telemetry-cell">
-              <div class="cell-label">Surveillance Risk Level</div>
-              <div class="cell-val" id="metaThreatLevel">Level 1: Secure</div>
+              <div class="cell-label">Status</div>
+              <div class="cell-val" id="metaThreatLevel">Safe</div>
             </div>
           </div>
 
           <!-- JSON Response Inspector -->
           <details class="inspector-details">
             <summary class="inspector-summary">
-              <span>RAW TELEMETRY PAYLOAD (JSON)</span>
-              <button class="btn-copy-code" id="btnCopyJson">Copy Payload</button>
+              <span>VIEW JSON DETAILS</span>
+              <button class="btn-copy-code" id="btnCopyJson">Copy JSON</button>
             </summary>
             <pre class="raw-json-box" id="jsonPayloadDisplay">{
-  "status": "awaiting_telemetry"
+  "status": "waiting_for_input"
 }</pre>
           </details>
         </div>
@@ -286,19 +279,19 @@
     </section>
 
     <!-- ========================================================================
-         TAB 2: Video Feed Audit Pipeline
+         TAB 2: Video Scan
          ======================================================================== -->
     <section class="tab-content-panel" id="videoTabPanel" role="tabpanel">
       <div class="grid-2col">
 
-        <!-- Video Ingestion Strip -->
+        <!-- Video Upload Strip -->
         <div class="panel-card tactical-pod">
           <div class="panel-header">
             <div class="panel-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
-              <span>Temporal Clip Audit Engine</span>
+              <span>Upload Video</span>
             </div>
-            <span class="panel-subtitle">Chronological Frame Batching</span>
+            <span class="panel-subtitle">Scan video clip frame-by-frame</span>
           </div>
 
           <!-- Dropzone -->
@@ -306,53 +299,53 @@
             <div class="drop-icon-box">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
             </div>
-            <div class="drop-primary-txt">SELECT OR DROP AN MP4 / AVI RECORDING</div>
-            <div class="drop-secondary-txt">Batches keyframes across timeline &bull; Max recommended: 50MB</div>
+            <div class="drop-primary-txt">SELECT OR DROP A VIDEO FILE</div>
+            <div class="drop-secondary-txt">Supports MP4, AVI, MOV &bull; Max size: 50MB</div>
             <input type="file" id="videoFileInput" class="file-input-hidden" accept="video/mp4,video/avi,video/quicktime,video/x-msvideo" />
           </div>
 
           <!-- Progress Indicator -->
           <div id="videoProcessingState" style="display: none; padding: 2rem; text-align: center;">
             <div class="spinner-hud" style="margin: 0 auto 1rem;"></div>
-            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); letter-spacing: 0.05em;">AUDITING SURVEILLANCE TIMELINE...</h4>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.3rem;">Decompressing frames and routing tensors through ResNet-50 head</p>
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); letter-spacing: 0.05em;">SCANNING VIDEO...</h4>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.3rem;">Analyzing video frames for fire and smoke...</p>
           </div>
         </div>
 
-        <!-- Video Audit Telemetry -->
+        <!-- Video Results -->
         <div class="panel-card tactical-pod">
           <div class="panel-header">
             <div class="panel-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-              <span>Temporal KPIs &amp; Incident Chronicle</span>
+              <span>Video Scan Results</span>
             </div>
-            <span class="panel-subtitle">Temporal Hazard Distribution</span>
+            <span class="panel-subtitle">Summary &amp; Timeline</span>
           </div>
 
           <div id="videoResultsPanel" style="display: none;">
             <!-- KPI Summary Bar -->
             <div class="video-kpi-grid">
               <div class="kpi-card">
-                <div class="kpi-num" id="kpiOverall" style="color: var(--hazard-safe);">CLEAR</div>
+                <div class="kpi-num" id="kpiOverall" style="color: var(--hazard-safe);">SAFE</div>
                 <div class="kpi-label">Overall Status</div>
               </div>
               <div class="kpi-card">
                 <div class="kpi-num" id="kpiFire" style="color: var(--hazard-fire);">0%</div>
-                <div class="kpi-label">Fire Incident Ratio</div>
+                <div class="kpi-label">Fire Detected In</div>
               </div>
               <div class="kpi-card">
                 <div class="kpi-num" id="kpiSmoke" style="color: var(--hazard-smoke);">0%</div>
-                <div class="kpi-label">Smoke Incident Ratio</div>
+                <div class="kpi-label">Smoke Detected In</div>
               </div>
               <div class="kpi-card">
                 <div class="kpi-num" id="kpiFrames">0</div>
-                <div class="kpi-label">Sampled Frames</div>
+                <div class="kpi-label">Frames Checked</div>
               </div>
             </div>
 
             <!-- Incident Log -->
             <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.4rem; letter-spacing: 0.05em;">
-              Timestamp Event Timeline
+              Detection Timeline
             </div>
             <div class="incident-feed-box" id="videoTimelineFeed" style="max-height: 270px;">
               <!-- Populated by JS -->
@@ -360,7 +353,7 @@
           </div>
 
           <div id="videoEmptyPrompt" style="padding: 4rem 1rem; text-align: center; color: var(--text-tertiary); font-size: 0.85rem; letter-spacing: 0.04em;">
-            STAGE AN MP4 / AVI SURVEILLANCE CLIP TO COMPILE A CHRONOLOGICAL HAZARD TIMELINE.
+            Upload a video file to view detection results and timeline.
           </div>
         </div>
 
@@ -368,60 +361,60 @@
     </section>
 
     <!-- ========================================================================
-         TAB 3: Live CCTV Surveillance
+         TAB 3: Live Camera Feed
          ======================================================================== -->
     <section class="tab-content-panel" id="webcamTabPanel" role="tabpanel">
       <div class="grid-2col">
 
-        <!-- CCTV Stage & Camera Control -->
+        <!-- Camera Stage & Controls -->
         <div class="panel-card tactical-pod">
           <div class="panel-header">
             <div class="panel-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-              <span>Live CCTV Surveillance Feed</span>
+              <span>Live Camera Feed</span>
             </div>
-            <span class="panel-subtitle">Real-Time Sensor Ingestion</span>
+            <span class="panel-subtitle">Real-Time Detection</span>
           </div>
 
-          <!-- CCTV Viewport with Overlays -->
+          <!-- Camera Viewport with Overlays -->
           <div class="cctv-stage tactical-cctv-frame" id="cctvStage">
             <video id="webcamVideo" autoplay playsinline muted></video>
             <canvas id="webcamCanvas" style="display: none;"></canvas>
 
-            <!-- Authentic CCTV HUD Overlays -->
+            <!-- Camera Overlays -->
             <div class="cctv-hud-layer" id="cctvHud">
               <div class="hud-top-bar">
                 <div class="hud-rec-badge">
                   <span class="rec-dot"></span>
-                  <span id="hudRecStatus">REC ● LIVE</span>
+                  <span id="hudRecStatus">● LIVE</span>
                 </div>
-                <div id="hudCameraId">FEED: SURV-CAM-01 (FRONT)</div>
+                <div id="hudCameraId">Front Camera</div>
                 <div style="display: flex; align-items: center; gap: 0.6rem;">
-                  <button class="hud-quick-btn" id="hudFlipCamBtn" title="Switch between Front (Selfie) and Rear (Back) Camera" aria-label="Switch Camera">
+                  <button class="hud-quick-btn" id="hudFlipCamBtn" title="Switch between Front and Back Camera" aria-label="Switch Camera">
                     <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8c0 2.21 0.895 4.21 2.343 5.657L4 18h6v-6l-2.343 2.343C6.627 13.314 6 11.737 6 10c0-3.314 2.686-6 6-6s6 2.686 6 6c0 1.737-0.627 3.314-1.657 4.343l1.414 1.414C19.105 14.21 20 12.21 20 10z"/>
                     </svg>
-                    <span id="hudFlipCamText">FLIP CAM</span>
+                    <span id="hudFlipCamText">SWITCH CAMERA</span>
                   </button>
-                  <div id="hudFpsCounter">INFERENCE: 0.0 FPS</div>
+                  <div id="hudFpsCounter">0.0 FPS</div>
                 </div>
               </div>
 
-              <!-- Corner Brackets -->
+              <!-- Corner Accents -->
               <div class="cctv-corner-tl"></div>
               <div class="cctv-corner-tr"></div>
               <div class="cctv-corner-bl"></div>
               <div class="cctv-corner-br"></div>
 
               <div class="hud-bottom-bar">
-                <span id="hudTimestamp">2026-09-20 00:00:00</span>
-                <span id="hudStreamSpec">RESOLUTION: 640x480 RAW</span>
+                <span id="hudTimestamp">2026-09-22 00:00:00</span>
+                <span id="hudStreamSpec">640x480</span>
                 <span id="hudActiveThreatTag" style="font-weight: 700;">STANDBY</span>
               </div>
             </div>
           </div>
 
-          <!-- CCTV Controls -->
+          <!-- Camera Controls -->
           <div class="cctv-controls-strip">
             <div class="action-btn-group">
               <button class="btn-cmd btn-cmd-primary" id="btnStartCamera">
@@ -436,42 +429,42 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                 <span>Snapshot</span>
               </button>
-              <button class="btn-cmd btn-cmd-secondary" id="btnSwitchCamera" title="Switch between Front (Selfie) and Rear (Back) Camera">
+              <button class="btn-cmd btn-cmd-secondary" id="btnSwitchCamera" title="Switch between Front and Back Camera">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8c0 2.21 0.895 4.21 2.343 5.657L4 18h6v-6l-2.343 2.343C6.627 13.314 6 11.737 6 10c0-3.314 2.686-6 6-6s6 2.686 6 6c0 1.737-0.627 3.314-1.657 4.343l1.414 1.414C19.105 14.21 20 12.21 20 10z"/>
                 </svg>
-                <span id="switchCamLabel">Flip Cam</span>
+                <span id="switchCamLabel">Switch Camera</span>
               </button>
             </div>
 
             <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--text-tertiary);">
-              <label for="cameraSelect" style="font-family: var(--font-mono); font-weight: 700;">SENSOR SRC:</label>
+              <label for="cameraSelect" style="font-family: var(--font-mono); font-weight: 700;">Camera:</label>
               <select id="cameraSelect" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); padding: 4px 8px; font-size: 0.75rem; font-family: var(--font-mono);">
-                <option value="">Default Optical Sensor</option>
+                <option value="">Default Camera</option>
               </select>
             </div>
           </div>
         </div>
 
-        <!-- CCTV Incident Feed & Alarm Monitor -->
+        <!-- Camera Status & Activity Feed -->
         <div class="panel-card tactical-pod">
           <div class="panel-header">
             <div class="panel-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-              <span>Live Threat Status &amp; Incident Stream</span>
+              <span>Live Status &amp; Alert History</span>
             </div>
-            <span class="panel-subtitle">Rolling Alert Register</span>
+            <span class="panel-subtitle">Recent Activity</span>
           </div>
 
-          <!-- Live CCTV Assessment Banner -->
+          <!-- Live Camera Status Banner -->
           <div class="assessment-banner" id="cctvAssessmentBanner">
             <div class="assessment-left">
               <div class="threat-icon-box" id="cctvThreatIcon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
               </div>
               <div class="threat-title-group">
-                <h3 id="cctvThreatHeading">SENSOR OFFLINE</h3>
-                <p id="cctvThreatSub">Activate video ingestion to initiate real-time AI perimeter surveillance</p>
+                <h3 id="cctvThreatHeading">CAMERA OFFLINE</h3>
+                <p id="cctvThreatSub">Click Start Camera to begin live detection</p>
               </div>
             </div>
             <div class="threat-metric-box">
@@ -480,16 +473,16 @@
             </div>
           </div>
 
-          <!-- Rolling Live Log -->
+          <!-- Activity Log -->
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; margin-top: 1rem;">
             <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">
-              Tactical Alert Chronicle
+              Recent Alerts
             </span>
             <button class="btn-copy-code" id="btnClearLog">Clear Log</button>
           </div>
           <div class="incident-feed-box" id="liveIncidentFeed" style="max-height: 250px;">
             <div class="incident-row" style="color: var(--text-tertiary);">
-              <span>Surveillance sensor initialized. Waiting for stream engagement...</span>
+              <span>Camera is off. Click Start Camera to begin.</span>
             </div>
           </div>
         </div>
@@ -498,16 +491,16 @@
     </section>
 
     <!-- ========================================================================
-         TAB 4: REST API & Developer Playground
+         TAB 4: REST API Documentation
          ======================================================================== -->
     <section class="tab-content-panel" id="apiTabPanel" role="tabpanel">
       <div class="panel-card tactical-pod">
         <div class="panel-header">
           <div class="panel-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-            <span>REST API Integration Gateway</span>
+            <span>Developer API</span>
           </div>
-          <span class="panel-subtitle">OpenAPI &amp; Edge Camera Hookups</span>
+          <span class="panel-subtitle">HTTP Endpoints for Developers</span>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 1.25rem;">
@@ -525,7 +518,7 @@
               </button>
             </div>
             <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-              Returns model metadata, active compute device (CPU/CUDA), and operational status.
+              Checks if the service is running and returns model details.
             </p>
             <pre class="code-snippet">curl -X GET http://localhost:5000/api/health</pre>
           </div>
@@ -537,15 +530,15 @@
                 <span class="http-method method-post">POST</span>
                 <span>/api/predict/image</span>
               </div>
-              <button class="btn-copy-code" data-copy='curl -X POST -F "file=@test-imgs/26.jpg" http://localhost:5000/api/predict/image'>
+              <button class="btn-copy-code" data-copy='curl -X POST -F "file=@test-imgs/fire_sample_01.jpg" http://localhost:5000/api/predict/image'>
                 <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                 <span>Copy cURL</span>
               </button>
             </div>
             <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-              Uploads an image via multipart form-data or JSON Base64 for instant classification.
+              Send an image file to check for fire and smoke.
             </p>
-            <pre class="code-snippet">curl -X POST -F "file=@test-imgs/26.jpg" http://localhost:5000/api/predict/image</pre>
+            <pre class="code-snippet">curl -X POST -F "file=@test-imgs/fire_sample_01.jpg" http://localhost:5000/api/predict/image</pre>
           </div>
 
           <!-- Endpoint 3: Frame Stream -->
@@ -561,7 +554,7 @@
               </button>
             </div>
             <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-              High-throughput Base64 JSON endpoint designed for continuous camera frame polling.
+              Send a camera frame (Base64) for live streaming detection.
             </p>
             <pre class="code-snippet">curl -X POST -H "Content-Type: application/json" -d '{"frame": "data:image/jpeg;base64,..."}' http://localhost:5000/api/predict/frame</pre>
           </div>
@@ -573,15 +566,15 @@
                 <span class="http-method method-post">POST</span>
                 <span>/api/predict/video</span>
               </div>
-              <button class="btn-copy-code" data-copy='curl -X POST -F "file=@cctv_footage.mp4" -F "sample_interval=0.5" http://localhost:5000/api/predict/video'>
+              <button class="btn-copy-code" data-copy='curl -X POST -F "file=@test_video.mp4" -F "sample_interval=0.5" http://localhost:5000/api/predict/video'>
                 <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                 <span>Copy cURL</span>
               </button>
             </div>
             <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-              Batches video frames at designated intervals and returns a temporal event log.
+              Upload a video file to scan for fire and smoke.
             </p>
-            <pre class="code-snippet">curl -X POST -F "file=@cctv_footage.mp4" -F "sample_interval=0.5" http://localhost:5000/api/predict/video</pre>
+            <pre class="code-snippet">curl -X POST -F "file=@test_video.mp4" -F "sample_interval=0.5" http://localhost:5000/api/predict/video</pre>
           </div>
 
         </div>
@@ -595,8 +588,8 @@
        ======================================================================== -->
   <footer class="cmd-footer">
     <div class="footer-inner">
-      <span>FIRE &amp; SMOKE AI SURVEILLANCE SUITE &bull; REAL-TIME HAZARD CLASSIFIER</span>
-      <span>PYTORCH RESNET-50 &bull; WEB AUDIO SIREN INTEGRATION</span>
+      <span>FIRE &amp; SMOKE DETECTION APP &bull; REAL-TIME AI CLASSIFIER</span>
+      <span>POWERED BY RESNET-50 &bull; SOUND ALERTS ENABLED</span>
     </div>
   </footer>
 
