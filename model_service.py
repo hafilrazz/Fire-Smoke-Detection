@@ -172,7 +172,7 @@ class FireSmokeDetector:
         return glob_probs, spatial_probs
 
     def _detect_hazard_and_boxes(
-        self, img_np: np.ndarray, glob_probs: np.ndarray, spatial_probs: np.ndarray, w: int, h: int
+        self, img_np: np.ndarray, glob_probs: np.ndarray, spatial_probs: np.ndarray, w: int, h: int, is_webcam: bool = False
     ) -> Tuple[str, float, List[Dict[str, Any]], Dict[str, float]]:
         """
         Verifies actual fire and smoke presence to prevent false alarms on natural/webcam scenes,
@@ -182,32 +182,41 @@ class FireSmokeDetector:
         p_neutral = float(glob_probs[1])
         p_smoke = float(glob_probs[2])
 
-        # Color and texture analysis of the image
+        # 1. Fire chromaticity analysis
         r = img_np[:, :, 0].astype(np.int32)
         g = img_np[:, :, 1].astype(np.int32)
         b_ch = img_np[:, :, 2].astype(np.int32)
         fire_pixels = (r > 115) & (r > g) & (g >= b_ch) & ((r - b_ch) > 25)
         fire_ratio = float(np.mean(fire_pixels))
 
+        # 2. Structural & texture analysis
         gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
         lap_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
         gray_std = float(gray.std())
 
+        # 3. HSV color & human skin detection
+        hsv = cv2.cvtColor(img_np, cv2.COLOR_RGB2HSV)
+        h_ch, s_ch, v_ch = hsv[:, :, 0], hsv[:, :, 1], hsv[:, :, 2]
+
+        # Human skin tone mask (detects face, neck, arms of person in frame)
+        skin_mask = ((h_ch <= 22) | (h_ch >= 170)) & (s_ch >= 45) & (s_ch <= 200) & (v_ch >= 55)
+        skin_ratio = float(np.mean(skin_mask))
+
+        # Smoke desaturation check (smoke particles are largely achromatic haze)
+        low_sat_ratio = float(np.mean(s_ch < 50))
+
+        # 4. Spatial feature map activations (layer4: 7x7 grid)
         fire_sp_max = float(spatial_probs[0].max())
         fire_sp_mean = float(spatial_probs[0].mean())
         smoke_sp_max = float(spatial_probs[2].max())
         smoke_sp_mean = float(spatial_probs[2].mean())
-        smoke_sp_std = float(spatial_probs[2].std())
+        smoke_cells_active = int(np.sum(spatial_probs[2] > 0.50))
 
         # =========================================================
-        # Decision Logic with False Alarm Suppression for Live Cam
+        # Robust Decision Logic with Human & Ambient False Alarm Filtering
         # =========================================================
-        pred_class = "Neutral"
-        confidence = p_neutral
 
-        # 1. Fire Verification:
-        # High global fire probability (>= 0.50) dominating smoke, confirmed by
-        # strong fire probability (>= 0.85), flame chromaticity, or high spatial fire mean
+        # Fire Verification
         is_fire_verified = (
             p_fire >= 0.50 and p_fire > p_smoke and (
                 p_fire >= 0.85
@@ -216,36 +225,68 @@ class FireSmokeDetector:
             )
         )
 
-        # 2. Smoke Verification:
-        # Real smoke must have:
-        # - High global smoke probability (>= 0.70) dominating fire
-        # - Spatial smoke peak (>= 0.60)
-        # - Sufficient image texture/variance (not a flat indoor wall, dark room, or lens blur: lap_var > 60, gray_std > 20)
-        # - Non-uniform dispersion (smoke plume vs uniform wall background: smoke_sp_std > 0.05)
-        is_smoke_verified = (
-            p_smoke >= 0.70 and p_smoke > p_fire and (
-                (lap_var > 60.0 and gray_std > 20.0 and smoke_sp_max >= 0.60 and smoke_sp_std > 0.05)
-                or (p_smoke >= 0.90 and lap_var > 100.0 and gray_std > 30.0)
-            )
-        )
+        is_human_present = (skin_ratio >= 0.055)
 
+        if is_webcam:
+            # During live webcam surveillance:
+            # If a human is in front of the camera and no fire is verified,
+            # this is a normal ambient room with a user at their computer -> suppress false smoke!
+            if is_human_present and not is_fire_verified:
+                is_smoke_verified = (
+                    p_smoke >= 0.999
+                    and smoke_sp_mean >= 0.70
+                    and smoke_cells_active >= 35
+                )
+            else:
+                # Without human face/skin, require decisive smoke evidence (not just a flat wall or dim room)
+                is_smoke_verified = (
+                    p_smoke >= 0.985
+                    and p_smoke > p_fire * 2.0
+                    and smoke_sp_mean >= 0.50
+                    and smoke_cells_active >= 20
+                    and lap_var > 40.0
+                    and gray_std > 15.0
+                )
+        else:
+            # General image prediction (e.g. dataset photos, uploaded hazard images)
+            is_smoke_verified = (
+                p_smoke >= 0.985
+                and p_smoke > p_fire * 2.0
+                and smoke_sp_mean >= 0.50
+                and smoke_cells_active >= 20
+                and lap_var > 40.0
+                and gray_std > 15.0
+            )
+
+        # Final classification assignment
         if is_fire_verified:
             pred_class = "Fire"
             confidence = max(p_fire, fire_sp_max)
+            prob_dict = {
+                "Fire": round(confidence * 100.0, 2),
+                "Neutral": round(p_neutral * 100.0, 2),
+                "Smoke": round(p_smoke * 100.0, 2),
+            }
         elif is_smoke_verified:
             pred_class = "Smoke"
             confidence = max(p_smoke, smoke_sp_max)
+            prob_dict = {
+                "Fire": round(p_fire * 100.0, 2),
+                "Neutral": round(p_neutral * 100.0, 2),
+                "Smoke": round(confidence * 100.0, 2),
+            }
         else:
             pred_class = "Neutral"
-            confidence = max(p_neutral, 1.0 - p_fire - p_smoke)
-            if confidence < 0.60:
-                confidence = 0.90  # Confirmed secure ambient perimeter
-
-        prob_dict = {
-            "Fire": round((confidence * 100.0 if pred_class == "Fire" else p_fire * 100.0), 2),
-            "Neutral": round((confidence * 100.0 if pred_class == "Neutral" else p_neutral * 100.0), 2),
-            "Smoke": round((confidence * 100.0 if pred_class == "Smoke" else p_smoke * 100.0), 2),
-        }
+            # If hazard was suppressed as a false alarm, reallocate ambiguous hazard probabilities to Neutral
+            suppressed_smoke = p_smoke if not is_smoke_verified else 0.0
+            suppressed_fire = p_fire if not is_fire_verified else 0.0
+            effective_neutral = min(1.0, p_neutral + suppressed_smoke * 0.92 + suppressed_fire * 0.92)
+            confidence = max(0.90, effective_neutral)
+            prob_dict = {
+                "Fire": round(max(0.0, p_fire - suppressed_fire * 0.92) * 100.0, 2),
+                "Neutral": round(confidence * 100.0, 2),
+                "Smoke": round(max(0.0, p_smoke - suppressed_smoke * 0.92) * 100.0, 2),
+            }
 
         total_p = sum(prob_dict.values())
         if total_p > 0:
@@ -256,7 +297,7 @@ class FireSmokeDetector:
 
         return pred_class, round(confidence * 100.0, 2), boxes, prob_dict
 
-    def predict_pil(self, img: Image.Image) -> Dict[str, Any]:
+    def predict_pil(self, img: Image.Image, is_webcam: bool = False) -> Dict[str, Any]:
         """
         Runs inference on a PIL image and returns predictions, probabilities,
         localized green bounding boxes, and latency.
@@ -278,7 +319,7 @@ class FireSmokeDetector:
 
         # Run hazard verification and bounding box localization
         pred_class, confidence, boxes, prob_dict = self._detect_hazard_and_boxes(
-            img_np, glob_probs, spatial_probs, w, h
+            img_np, glob_probs, spatial_probs, w, h, is_webcam=is_webcam
         )
 
         latency_ms = round((time.perf_counter() - start_time) * 1000.0, 1)
@@ -298,18 +339,18 @@ class FireSmokeDetector:
             "resolution": f"{w}x{h}"
         }
 
-    def predict_bytes(self, image_bytes: bytes) -> Dict[str, Any]:
+    def predict_bytes(self, image_bytes: bytes, is_webcam: bool = False) -> Dict[str, Any]:
         """
         Runs inference on raw image bytes.
         """
         try:
             image = Image.open(io.BytesIO(image_bytes))
-            return self.predict_pil(image)
+            return self.predict_pil(image, is_webcam=is_webcam)
         except Exception as e:
             logger.error(f"Error decoding image bytes: {e}")
             raise ValueError(f"Invalid image format: {e}")
 
-    def predict_base64(self, b64_string: str) -> Dict[str, Any]:
+    def predict_base64(self, b64_string: str, is_webcam: bool = False) -> Dict[str, Any]:
         """
         Runs inference on a Base64-encoded image string (with or without data URI header).
         """
@@ -317,23 +358,23 @@ class FireSmokeDetector:
             b64_string = b64_string.split(",", 1)[1]
         try:
             image_bytes = base64.b64decode(b64_string)
-            return self.predict_bytes(image_bytes)
+            return self.predict_bytes(image_bytes, is_webcam=is_webcam)
         except Exception as e:
             logger.error(f"Error decoding base64 image: {e}")
             raise ValueError(f"Invalid base64 image data: {e}")
 
-    def predict_cv2_frame(self, frame: np.ndarray) -> Dict[str, Any]:
+    def predict_cv2_frame(self, frame: np.ndarray, is_webcam: bool = False) -> Dict[str, Any]:
         """
         Runs inference on an OpenCV BGR frame.
         """
         try:
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(rgb_frame)
-            return self.predict_pil(image)
+            return self.predict_pil(image, is_webcam=is_webcam)
         except Exception:
             rgb_frame = frame[:, :, ::-1]
             image = Image.fromarray(rgb_frame)
-            return self.predict_pil(image)
+            return self.predict_pil(image, is_webcam=is_webcam)
 
     def annotate_frame(self, frame: np.ndarray, pred_dict: Dict[str, Any]) -> np.ndarray:
         """

@@ -93,6 +93,8 @@ Fire-Smoke-Detection/
 ├── fire_smoke_resnet50.ipynb         # ResNet-50 transfer learning & fine-tuning notebook
 ├── Training.ipynb                    # Original training notebook
 ├── Inference.ipynb                   # Original notebook inference experiments
+├── Dockerfile                        # Hugging Face Spaces & Container build config
+├── .dockerignore                     # Build exclusion rules
 └── README.md                         # Project documentation
 ```
 

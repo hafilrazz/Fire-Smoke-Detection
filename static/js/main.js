@@ -708,6 +708,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const hudActiveThreatTag = document.getElementById("hudActiveThreatTag");
   const liveIncidentFeed = document.getElementById("liveIncidentFeed");
   const btnClearLog = document.getElementById("btnClearLog");
+  const btnSwitchCamera = document.getElementById("btnSwitchCamera");
+  const hudFlipCamBtn = document.getElementById("hudFlipCamBtn");
+  const switchCamLabel = document.getElementById("switchCamLabel");
+  const hudFlipCamText = document.getElementById("hudFlipCamText");
+  const hudCameraId = document.getElementById("hudCameraId");
 
   let cctvStream = null;
   let cctvInterval = null;
@@ -716,6 +721,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let fpsSampleCount = 0;
   let fpsTimerStart = Date.now();
   let latestCctvData = null;
+  let consecutiveHazardCount = 0;
+  let currentFacingMode = "user"; // "user" (front/selfie) or "environment" (rear/back)
 
   // Enumerate Connected Camera Devices
   async function populateCameraDevices() {
@@ -728,7 +735,14 @@ document.addEventListener("DOMContentLoaded", () => {
         videoDevices.forEach((dev, idx) => {
           const opt = document.createElement("option");
           opt.value = dev.deviceId;
-          opt.textContent = dev.label || `Optical Sensor Channel 0${idx + 1}`;
+          let label = dev.label || `Optical Sensor Channel 0${idx + 1}`;
+          const lower = label.toLowerCase();
+          if (lower.includes("back") || lower.includes("rear") || lower.includes("environment")) {
+            label = `[BACK] ${label}`;
+          } else if (lower.includes("front") || lower.includes("user") || lower.includes("selfie")) {
+            label = `[FRONT] ${label}`;
+          }
+          opt.textContent = label;
           cameraSelect.appendChild(opt);
         });
       }
@@ -737,6 +751,102 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
   populateCameraDevices();
+
+  // Switch between Selfie (User) and Rear (Environment) Camera
+  async function switchCamera() {
+    initAudioContext();
+    playTone(1100, 1400, 0.04, "sine", 0.04);
+
+    // Toggle facing mode
+    currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+    const isRear = currentFacingMode === "environment";
+
+    // Update UI elements
+    if (switchCamLabel) switchCamLabel.textContent = isRear ? "Rear Cam" : "Selfie Cam";
+    if (hudFlipCamText) hudFlipCamText.textContent = isRear ? "REAR" : "FRONT";
+    if (hudCameraId) hudCameraId.textContent = isRear ? "FEED: SURV-CAM-02 (REAR)" : "FEED: SURV-CAM-01 (FRONT)";
+
+    // Attempt to sync dropdown if devices are enumerated
+    if (cameraSelect && cameraSelect.options.length > 1) {
+      const keyword = isRear ? "back" : "front";
+      for (let i = 0; i < cameraSelect.options.length; i++) {
+        const text = cameraSelect.options[i].textContent.toLowerCase();
+        if (text.includes(keyword) || (isRear && text.includes("environment")) || (!isRear && (text.includes("user") || text.includes("selfie")))) {
+          cameraSelect.selectedIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (isCctvLive) {
+      if (cctvStream) {
+        cctvStream.getTracks().forEach((t) => t.stop());
+        cctvStream = null;
+      }
+
+      const constraints = {
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: { ideal: currentFacingMode },
+        },
+        audio: false,
+      };
+
+      try {
+        cctvStream = await navigator.mediaDevices.getUserMedia(constraints);
+        webcamVideo.srcObject = cctvStream;
+        await webcamVideo.play();
+        showToast(`Active Sensor: ${isRear ? "Rear / Back Camera" : "Front / Selfie Camera"}`);
+      } catch (err) {
+        console.warn("Camera switch error with facingMode, falling back:", err);
+        try {
+          cctvStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          webcamVideo.srcObject = cctvStream;
+          await webcamVideo.play();
+        } catch (fallbackErr) {
+          showToast("Camera switch failed: " + fallbackErr.message);
+        }
+      }
+    } else {
+      showToast(`Sensor target: ${isRear ? "Rear (Back) Camera" : "Front (Selfie) Camera"}`);
+    }
+  }
+
+  if (btnSwitchCamera) {
+    btnSwitchCamera.addEventListener("click", switchCamera);
+  }
+  if (hudFlipCamBtn) {
+    hudFlipCamBtn.addEventListener("click", switchCamera);
+  }
+
+  // Allow dropdown change to immediately switch sensor during live streaming
+  if (cameraSelect) {
+    cameraSelect.addEventListener("change", async () => {
+      if (isCctvLive && cameraSelect.value) {
+        if (cctvStream) {
+          cctvStream.getTracks().forEach((t) => t.stop());
+          cctvStream = null;
+        }
+        try {
+          const constraints = {
+            video: {
+              width: { ideal: 640 },
+              height: { ideal: 480 },
+              deviceId: { exact: cameraSelect.value },
+            },
+            audio: false,
+          };
+          cctvStream = await navigator.mediaDevices.getUserMedia(constraints);
+          webcamVideo.srcObject = cctvStream;
+          await webcamVideo.play();
+          showToast("Sensor switched to: " + (cameraSelect.options[cameraSelect.selectedIndex]?.textContent || "Sensor"));
+        } catch (e) {
+          showToast("Could not switch sensor: " + e.message);
+        }
+      }
+    });
+  }
 
   if (btnStartCamera) {
     btnStartCamera.addEventListener("click", startCctvStream);
@@ -752,6 +862,7 @@ document.addEventListener("DOMContentLoaded", () => {
       video: {
         width: { ideal: 640 },
         height: { ideal: 480 },
+        facingMode: { ideal: currentFacingMode },
         ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
       },
       audio: false,
@@ -796,6 +907,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     isCctvLive = false;
     latestCctvData = null;
+    consecutiveHazardCount = 0;
     btnStartCamera.style.display = "inline-flex";
     btnStopCamera.style.display = "none";
     if (btnCaptureSnapshot) btnCaptureSnapshot.disabled = true;
@@ -894,10 +1006,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // Trigger audible alarm if verified hazard reaches sensitivity threshold
+    // Temporal verification: Require at least 2 consecutive hazard frames before triggering audio alarm
     if (isHazard && confidence >= detectionThreshold) {
-      triggerHazardSiren(pred);
-      logIncidentFeed(pred, confidence);
+      consecutiveHazardCount++;
+      if (consecutiveHazardCount >= 2) {
+        triggerHazardSiren(pred);
+        logIncidentFeed(pred, confidence);
+      }
+    } else {
+      consecutiveHazardCount = Math.max(0, consecutiveHazardCount - 1);
     }
   }
 

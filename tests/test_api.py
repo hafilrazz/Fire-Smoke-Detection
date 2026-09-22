@@ -25,7 +25,7 @@ def test_predict_known_samples():
     detector = FireSmokeDetector.get_instance()
 
     # Smoke sample
-    smoke_path = os.path.join("test-imgs", "image_0.jpg")
+    smoke_path = os.path.join("test-imgs", "smoke_sample_01.jpg")
     if os.path.exists(smoke_path):
         with open(smoke_path, "rb") as f:
             res = detector.predict_bytes(f.read())
@@ -36,7 +36,7 @@ def test_predict_known_samples():
         assert res["boxes"] == []  # Bounding boxes removed as requested
 
     # Fire sample
-    fire_path = os.path.join("test-imgs", "7.jpg")
+    fire_path = os.path.join("test-imgs", "fire_sample_01.jpg")
     if os.path.exists(fire_path):
         with open(fire_path, "rb") as f:
             res = detector.predict_bytes(f.read())
@@ -47,7 +47,7 @@ def test_predict_known_samples():
         assert res["boxes"] == []  # Bounding boxes removed as requested
 
     # Neutral sample
-    neutral_path = os.path.join("test-imgs", "image_7.jpg")
+    neutral_path = os.path.join("test-imgs", "neutral_sample_01.jpg")
     if os.path.exists(neutral_path):
         with open(neutral_path, "rb") as f:
             res = detector.predict_bytes(f.read())
@@ -71,10 +71,10 @@ def test_api_samples_list(client):
     samples = res.get_json()
     assert isinstance(samples, list)
     assert len(samples) > 0
-    assert any(s["filename"] == "image_0.jpg" for s in samples)
+    assert any(s["filename"] == "smoke_sample_01.jpg" for s in samples)
 
 def test_api_predict_sample_json(client):
-    res = client.post("/api/predict/image", json={"sample_filename": "image_0.jpg"})
+    res = client.post("/api/predict/image", json={"sample_filename": "smoke_sample_01.jpg"})
     assert res.status_code == 200
     data = res.get_json()
     assert data["prediction"] == "Smoke"
@@ -82,12 +82,12 @@ def test_api_predict_sample_json(client):
     assert "probabilities" in data
 
 def test_api_predict_upload_file(client):
-    smoke_path = os.path.join("test-imgs", "image_0.jpg")
+    smoke_path = os.path.join("test-imgs", "smoke_sample_01.jpg")
     with open(smoke_path, "rb") as f:
         img_bytes = f.read()
 
     data = {
-        "file": (io.BytesIO(img_bytes), "image_0.jpg")
+        "file": (io.BytesIO(img_bytes), "smoke_sample_01.jpg")
     }
     res = client.post("/api/predict/image", data=data, content_type="multipart/form-data")
     assert res.status_code == 200
@@ -96,7 +96,7 @@ def test_api_predict_upload_file(client):
     assert result["confidence"] > 90.0
 
 def test_api_predict_frame_base64(client):
-    smoke_path = os.path.join("test-imgs", "image_0.jpg")
+    smoke_path = os.path.join("test-imgs", "smoke_sample_01.jpg")
     with open(smoke_path, "rb") as f:
         b64 = base64.b64encode(f.read()).decode("utf-8")
 
@@ -110,7 +110,7 @@ def test_api_predict_video(client):
     temp_video = "tests_temp_video.mp4"
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     writer = cv2.VideoWriter(temp_video, fourcc, 10, (320, 240))
-    img = cv2.imread("test-imgs/image_0.jpg")
+    img = cv2.imread("test-imgs/smoke_sample_01.jpg")
     img = cv2.resize(img, (320, 240))
     for _ in range(10):
         writer.write(img)
@@ -161,6 +161,21 @@ def test_webcam_false_alarm_suppression(client):
     assert data2["prediction"] == "Neutral"
     assert data2["is_hazard"] is False
     assert data2["boxes"] == []
+
+    # 3. Person sitting in front of webcam (indoor room background + skin tones + dark clothing)
+    human_cam = np.full((240, 320, 3), (180, 185, 190), dtype=np.uint8)
+    # Draw dark shirt/torso
+    cv2.rectangle(human_cam, (60, 140), (260, 240), (35, 38, 42), -1)
+    # Draw face with skin tone (BGR: roughly (130, 160, 215))
+    cv2.circle(human_cam, (160, 90), 45, (130, 160, 215), -1)
+    _, buf3 = cv2.imencode(".jpg", human_cam)
+    b64_3 = base64.b64encode(buf3).decode("utf-8")
+
+    res3 = client.post("/api/predict/frame", json={"frame": f"data:image/jpeg;base64,{b64_3}"})
+    assert res3.status_code == 200
+    data3 = res3.get_json()
+    assert data3["prediction"] == "Neutral"
+    assert data3["is_hazard"] is False
 
 
 def test_annotate_frame():
