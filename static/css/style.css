@@ -1663,3 +1663,38 @@ body::before {
 .toast-notice svg {
   color: var(--accent-cyan);
 }
+
+/* Quick HUD Camera Switch Button */
+.hud-quick-btn {
+  background: rgba(16, 24, 38, 0.85);
+  border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: var(--transition-fast);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 0 6px rgba(0, 240, 255, 0.2);
+}
+
+.hud-quick-btn:hover, .hud-quick-btn:active {
+  background: rgba(0, 240, 255, 0.25);
+  color: #fff;
+  border-color: #fff;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+  transform: scale(1.03);
+}
+
+.hud-quick-btn svg {
+  transition: transform 0.3s ease;
+}
+
+.hud-quick-btn:active svg {
+  transform: rotate(180deg);
+}

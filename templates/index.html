@@ -395,8 +395,16 @@
                   <span class="rec-dot"></span>
                   <span id="hudRecStatus">REC ● LIVE</span>
                 </div>
-                <div id="hudCameraId">FEED: SURV-CAM-01</div>
-                <div id="hudFpsCounter">INFERENCE: 0.0 FPS</div>
+                <div id="hudCameraId">FEED: SURV-CAM-01 (FRONT)</div>
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                  <button class="hud-quick-btn" id="hudFlipCamBtn" title="Switch between Front (Selfie) and Rear (Back) Camera" aria-label="Switch Camera">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8c0 2.21 0.895 4.21 2.343 5.657L4 18h6v-6l-2.343 2.343C6.627 13.314 6 11.737 6 10c0-3.314 2.686-6 6-6s6 2.686 6 6c0 1.737-0.627 3.314-1.657 4.343l1.414 1.414C19.105 14.21 20 12.21 20 10z"/>
+                    </svg>
+                    <span id="hudFlipCamText">FLIP CAM</span>
+                  </button>
+                  <div id="hudFpsCounter">INFERENCE: 0.0 FPS</div>
+                </div>
               </div>
 
               <!-- Corner Brackets -->
@@ -427,6 +435,12 @@
               <button class="btn-cmd btn-cmd-secondary" id="btnCaptureSnapshot" disabled>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                 <span>Snapshot</span>
+              </button>
+              <button class="btn-cmd btn-cmd-secondary" id="btnSwitchCamera" title="Switch between Front (Selfie) and Rear (Back) Camera">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8c0 2.21 0.895 4.21 2.343 5.657L4 18h6v-6l-2.343 2.343C6.627 13.314 6 11.737 6 10c0-3.314 2.686-6 6-6s6 2.686 6 6c0 1.737-0.627 3.314-1.657 4.343l1.414 1.414C19.105 14.21 20 12.21 20 10z"/>
+                </svg>
+                <span id="switchCamLabel">Flip Cam</span>
               </button>
             </div>
 
