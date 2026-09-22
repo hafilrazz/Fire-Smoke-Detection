@@ -7,40 +7,53 @@ Early fire and smoke detection plays a critical role in saving lives, reducing p
 ---
 
 ## Demo & Sample Outputs
-- **Demo GIF**: `utils/demo.gif`
-- **Model Training Accuracy & Loss**: `utils/accuracy.png` and `utils/trainloss.png`
-- **Sample Results**: `utils/fire.png`, `utils/smoke.png`, `utils/neutral.png`
+- **Live Demo GIF**: `utils/demo.gif`
+- **Model Training Curves**: `utils/accuracy.png` and `utils/trainloss.png`
+- **Class Examples**: `utils/fire.png` (Fire), `utils/smoke.png` (Smoke), `utils/neutral.png` (Neutral)
 
 ---
 
 ## Key Features
 
 1. **Interactive Web Dashboard**:
-   - Modern cybersecurity/surveillance dark-mode UI.
+   - Modern dark-mode CCTV/surveillance interface.
    - Real-time hazard alert banner (🔴 Fire, 🟠 Smoke, 🟢 Neutral).
-   - Audio siren warning (with mute/unmute toggle).
-   - Class confidence percentage meters and probability distribution charts.
+   - Audio siren warning with an instant mute/unmute toggle.
+   - Class confidence percentage meters and probability distribution spectrum.
 
 2. **Multi-Input Inference**:
-   - **Image Detection**: Drag & drop custom images or click one-click samples from the dataset gallery.
-   - **Video Analysis**: Upload MP4/AVI videos for frame-by-frame analysis, hazard timeline logging, and detection breakdown.
-   - **Live Webcam Surveillance**: Direct browser camera access with real-time HUD and FPS counter.
+   - **Image Classification**: Drag & drop custom image files or select from a bundled 1-click test gallery.
+   - **Video Analysis**: Upload MP4, AVI, MOV, or WEBM videos for automated periodic frame sampling, hazard timelines, and statistical summaries.
+   - **Live Webcam Surveillance**: Direct in-browser camera feed with low-latency base64 streaming and dynamic FPS telemetry.
 
-3. **Production REST API**:
-   - `GET  /api/health` - Check model status, device, and PyTorch version.
-   - `POST /api/predict/image` - Classify image (multipart upload or base64 JSON).
-   - `POST /api/predict/frame` - High-speed base64 streaming endpoint for live cameras.
-   - `POST /api/predict/video` - Video processing with chronological detection timeline.
-   - `GET  /api/samples` - Retrieve sample test images from `test-imgs/`.
+3. **Intelligent False-Alarm Suppression**:
+   - Real-world indoor webcam feeds often suffer from false alarms due to warm lighting, wooden textures, or plain walls.
+   - The inference engine incorporates multi-factor verification:
+     - **Spatial Feature Map Analysis**: Inspects the $7 \times 7$ feature activation map from ResNet-50's `layer4` to verify concentrated plume dispersion vs uniform background.
+     - **Flame Chromaticity Filtering**: Checks color channel distributions ($R > 115, R > G \ge B$).
+     - **Laplacian Texture Variance**: Prevents flat, featureless surfaces or dark room noise from falsely triggering smoke alerts.
+
+4. **Production REST API**:
+   - Clean, fully documented JSON endpoints for health monitoring, batch predictions, streaming webcam frames, and video processing.
 
 ---
 
-## Model Architecture
-- **Backbone**: Pretrained `ResNet-50` (Transfer Learning on ImageNet).
+## Model Architecture & Specifications
+
+- **Backbone**: Pretrained `ResNet-50` (Transfer Learning on ImageNet `IMAGENET1K_V2`).
 - **Classifier Head**:
-  $$\text{Linear}(2048 \to 128) \to \text{ReLU} \to \text{Linear}(128 \to 3) \to \text{Softmax}$$
-- **Classes**: `['Fire', 'Neutral', 'Smoke']`
-- **Validation Accuracy**: ~93%
+  $$\text{Dropout}(0.3) \to \text{Linear}(2048 \to 128) \to \text{ReLU} \to \text{Dropout}(0.2) \to \text{Linear}(128 \to 3)$$
+- **Target Classes (3)**:
+  - `Fire` (Critical hazard)
+  - `Neutral` (Safe / Normal ambient environment)
+  - `Smoke` (Warning hazard)
+- **Input Dimensions**: $224 \times 224 \times 3$ RGB normalized with ImageNet standards:
+  - Mean: `[0.485, 0.456, 0.406]`
+  - Std: `[0.229, 0.224, 0.225]`
+- **Active Checkpoint Hierarchy**:
+  1. `trained-models/fire_smoke_resnet50_final.pth` *(Primary state_dict checkpoint with training metadata)*
+  2. `trained-models/model_final.pth` *(Trained fallback checkpoint)*
+  3. `trained-models/model_final_legacy.pth` *(Legacy serialized checkpoint)*
 
 ---
 
@@ -49,29 +62,38 @@ Early fire and smoke detection plays a critical role in saving lives, reducing p
 ```
 Fire-Smoke-Detection/
 ├── trained-models/
-│   └── model_final.pth          # PyTorch ResNet-50 trained weights
-├── test-imgs/                   # Sample evaluation images
-├── utils/                       # Performance plots and demo images
+│   ├── fire_smoke_resnet50_final.pth # Primary PyTorch ResNet-50 state dict + metadata
+│   ├── model_final.pth               # Fallback trained weights
+│   └── model_final_legacy.pth        # Legacy serialized fallback
+├── test-imgs/                        # Sample evaluation images for quick testing
+├── utils/                            # Performance plots and visual assets
+│   ├── accuracy.png
+│   ├── trainloss.png
+│   ├── demo.gif
+│   ├── fire.png
+│   ├── smoke.png
+│   └── neutral.png
 │
-├── model_service.py             # Inference engine (CPU/CUDA, pre-processing, video processing)
-├── app.py                       # Flask web server & REST API controller
-├── run.py                       # CLI launcher script
-├── requirements.txt             # Project dependencies
+├── model_service.py                  # Singleton inference engine & heuristic verification
+├── app.py                            # Flask server, routing, and REST API controller
+├── run.py                            # CLI launcher script with configurable host/port
+├── requirements.txt                  # Python dependencies
 │
 ├── templates/
-│   └── index.html               # Web surveillance dashboard
+│   └── index.html                    # Surveillance dashboard UI
 ├── static/
 │   ├── css/
-│   │   └── style.css            # Responsive dark-theme dashboard stylesheet
+│   │   └── style.css                 # Dark-mode dashboard stylesheet
 │   └── js/
-│       └── main.js              # Frontend UI controller, audio alarm, and WebRTC streaming
+│       └── main.js                   # Frontend controller, WebRTC webcam, audio siren
 │
 ├── tests/
-│   └── test_api.py              # Automated unit and API integration tests
+│   └── test_api.py                   # Automated unit and API test suite (10 tests)
 │
-├── Training.ipynb               # Original model training notebook
-├── Inference.ipynb              # Original notebook inference experiments
-└── README.md                    # Project documentation
+├── fire_smoke_resnet50.ipynb         # ResNet-50 transfer learning & fine-tuning notebook
+├── Training.ipynb                    # Original training notebook
+├── Inference.ipynb                   # Original notebook inference experiments
+└── README.md                         # Project documentation
 ```
 
 ---
@@ -79,7 +101,7 @@ Fire-Smoke-Detection/
 ## Quick Start & Installation
 
 ### 1. Prerequisites
-- Python 3.9+ (Python 3.10 - 3.13 supported)
+- Python 3.9+ (Python 3.10 - 3.14 supported)
 - (Optional) NVIDIA GPU with CUDA for accelerated inference (CPU is automatically supported)
 
 ### 2. Install Dependencies
@@ -91,7 +113,7 @@ pip install -r requirements.txt
 ```bash
 python run.py
 ```
-Or with custom port/host:
+Or specify custom host and port:
 ```bash
 python run.py --host 0.0.0.0 --port 5000
 ```
@@ -101,52 +123,136 @@ Open your browser and navigate to:
 http://localhost:5000/
 ```
 
+### 4. Production Deployment (Gunicorn)
+For production Linux / container environments with multi-worker scaling:
+```bash
+gunicorn -w 2 -b 0.0.0.0:5000 --timeout 120 app:app
+```
+*(Note: Gunicorn targets UNIX/POSIX environments. For local Windows hosting or development, use `python run.py`)*
+
 ---
 
 ## Running Automated Tests
 
-Run the full automated test suite (verifying model loading, predictions on sample images, and API endpoints):
+Run the complete 10-test automated test suite (verifying model loading, sample classifications, API endpoints, false-alarm suppression, and video processing):
 
 ```bash
-pytest tests/test_api.py -v
+python -m pytest tests/test_api.py -v
 ```
 
 ---
 
-## REST API Usage Examples
+## REST API Reference
 
-### Health Check
-```bash
-curl -X GET http://localhost:5000/api/health
-```
-
-### Predict Image (File Upload)
-```bash
-curl -X POST -F "file=@test-imgs/26.jpg" http://localhost:5000/api/predict/image
+### 1. Health Check
+```http
+GET /api/health
 ```
 **Response:**
 ```json
 {
-  "prediction": "Fire",
-  "confidence": 100.0,
-  "is_hazard": true,
-  "hazard_level": "CRITICAL",
-  "color_hex": "#EF4444",
-  "probabilities": {
-    "Fire": 100.0,
-    "Neutral": 0.0,
-    "Smoke": 0.0
-  },
-  "latency_ms": 93.3
+  "status": "healthy",
+  "service": "Fire & Smoke Detection AI",
+  "model": "ResNet-50 (Transfer Learning)",
+  "classes": ["Fire", "Neutral", "Smoke"],
+  "device": "cpu",
+  "pytorch_version": "2.x",
+  "timestamp": 1726900000.0
 }
 ```
 
-### Predict Sample by Name
-```bash
-curl -X POST http://localhost:5000/api/predict/image \
-  -H "Content-Type: application/json" \
-  -d '{"sample_filename": "image_0.jpg"}'
+### 2. Predict Image (Multipart Upload or JSON)
+```http
+POST /api/predict/image
 ```
+**Options:**
+- Multipart form-data with file field `file` or `image`
+- JSON payload: `{"image": "<base64_data>"}` or `{"sample_filename": "26.jpg"}`
+
+**Example curl (file upload):**
+```bash
+curl -X POST -F "file=@test-imgs/26.jpg" http://localhost:5000/api/predict/image
+```
+
+**Response:**
+```json
+{
+  "prediction": "Neutral",
+  "confidence": 98.45,
+  "is_hazard": false,
+  "hazard_level": "SAFE",
+  "color_hex": "#10B981",
+  "probabilities": {
+    "Fire": 0.52,
+    "Neutral": 98.45,
+    "Smoke": 1.03
+  },
+  "boxes": [],
+  "latency_ms": 64.2,
+  "width": 800,
+  "height": 600,
+  "resolution": "800x600",
+  "source": "upload"
+}
+```
+
+### 3. Predict Streaming Frame (Live Webcam)
+```http
+POST /api/predict/frame
+Content-Type: application/json
+
+{"frame": "data:image/jpeg;base64,..."}
+```
+
+### 4. Process Video
+```http
+POST /api/predict/video
+```
+**Parameters (Multipart form):**
+- `file`: Video file (`.mp4`, `.avi`, `.mov`, `.webm`)
+- `sample_interval`: Sampling interval in seconds (default `0.5`)
+
+**Response:**
+```json
+{
+  "status": "success",
+  "duration_sec": 12.5,
+  "processed_frames": 300,
+  "sampled_frames": 25,
+  "overall_prediction": "Neutral",
+  "is_hazard": false,
+  "hazard_level": "SAFE",
+  "stats": {
+    "fire_percent": 0.0,
+    "smoke_percent": 0.0,
+    "neutral_percent": 100.0,
+    "counts": {"Fire": 0, "Smoke": 0, "Neutral": 25}
+  },
+  "timeline": [
+    {
+      "timestamp": 0.0,
+      "frame": 0,
+      "prediction": "Neutral",
+      "confidence": 99.1,
+      "is_hazard": false,
+      "hazard_level": "SAFE"
+    }
+  ]
+}
+```
+
+### 5. Sample Gallery Endpoints
+- `GET /api/samples` — Returns metadata and URLs for bundled test images.
+- `GET /api/samples/<filename>` — Serves a specific test image.
+
+---
+
+## Training & Model Fine-Tuning
+
+The repository includes [`fire_smoke_resnet50.ipynb`](fire_smoke_resnet50.ipynb) for end-to-end training and checkpoint exporting:
+1. **Transfer Learning (Stage 1)**: ResNet-50 backbone is frozen; only the custom classification head is trained.
+2. **Fine-Tuning (Stage 2)**: Top residual layers (`layer4`) are unfrozen with a reduced learning rate to adapt spatial features to smoke plumes and flame patterns.
+3. **Export**: Saves state dictionary alongside preprocessing parameters (`img_size`, `mean`, `std`, `class_names`) into `fire_smoke_resnet50_final.pth`.
 
 ---
 
@@ -157,5 +263,5 @@ curl -X POST http://localhost:5000/api/predict/image \
 ---
 
 ## References
-1. PyImageSearch - [Fire and Smoke Detection with Deep Learning](https://www.pyimagesearch.com/2019/11/18/fire-and-smoke-detection-with-keras-and-deep-learning/)
-2. DeepQuestAI - [Fire-Smoke-Dataset](https://github.com/DeepQuestAI/Fire-Smoke-Dataset)
+1. PyImageSearch — [Fire and Smoke Detection with Deep Learning](https://www.pyimagesearch.com/2019/11/18/fire-and-smoke-detection-with-keras-and-deep-learning/)
+2. DeepQuestAI — [Fire-Smoke-Dataset](https://github.com/DeepQuestAI/Fire-Smoke-Dataset)
